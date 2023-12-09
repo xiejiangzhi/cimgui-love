@@ -108,7 +108,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [1.83-2] (2021-06-20)
 ### Changed
-- Fixed potential crashes if LuaJIT compiles the wrapper for a C function which calls the (Lua) clipboard callbacks ([#1](https://github.com/apicici/cimgui-love/issues/1))
+- Fixed potential crashes if LuaJIT compiles the wrapper for a C function which calls the (Lua) clipboard callbacks ([#1](https://codeberg.org/apicici/cimgui-love/issues/1))
 - Updated README.md to reflect change in Dear ImGui version
 - The mesh data in `imgui.RenderDrawLists` is now initialised using FFI instead of passing a string
 
@@ -126,28 +126,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Initial release of `generator.lua` and LÖVE implementation
 - Generated the wrappers using Dear ImGui 1.82 (docking branch)
 
-[Unreleased]: https://github.com/apicici/cimgui-love/compare/1.90-1...HEAD
-[1.90-1]: https://github.com/apicici/cimgui-love/compare/1.89.7-1...1.90-1
-[1.89.7-1]: https://github.com/apicici/cimgui-love/compare/1.89.6-1...1.89.7-1
-[1.89.6-1]: https://github.com/apicici/cimgui-love/compare/1.89.5-1...1.89.6-1
-[1.89.5-1]: https://github.com/apicici/cimgui-love/compare/1.89.4-1...1.89.5-1
-[1.89.4-1]: https://github.com/apicici/cimgui-love/compare/1.89.3-1...1.89.4-1
-[1.89.3-1]: https://github.com/apicici/cimgui-love/compare/1.89.2-2...1.89.3-1
-[1.89.2-2]: https://github.com/apicici/cimgui-love/compare/1.89.2-1...1.89.2-2
-[1.89.2-1]: https://github.com/apicici/cimgui-love/compare/1.89.1-1...1.89.2-1
-[1.89.1-1]: https://github.com/apicici/cimgui-love/compare/1.89-1...1.89.1-1
-[1.89-1]: https://github.com/apicici/cimgui-love/compare/1.88-2...1.89-1
-[1.88-2]: https://github.com/apicici/cimgui-love/compare/1.88-1...1.88-2
-[1.88-1]: https://github.com/apicici/cimgui-love/compare/1.87-1...1.88-1
-[1.87-1]: https://github.com/apicici/cimgui-love/compare/1.87WIP-1...1.87-1
-[1.87WIP-1]: https://github.com/apicici/cimgui-love/compare/1.86-1...1.87WIP-1
-[1.86-1]: https://github.com/apicici/cimgui-love/compare/1.85-1...1.86-1
-[1.85-1]: https://github.com/apicici/cimgui-love/compare/1.84.2-2...1.85-1
-[1.84.2-2]: https://github.com/apicici/cimgui-love/compare/1.84.2-1...1.84.2-2
-[1.84.2-1]: https://github.com/apicici/cimgui-love/compare/1.84.1-1...1.84.2-1
-[1.84.1-1]: https://github.com/apicici/cimgui-love/compare/1.83-3...1.84.1-1
-[1.83-3]: https://github.com/apicici/cimgui-love/compare/1.83-2...1.83-3
-[1.83-2]: https://github.com/apicici/cimgui-love/compare/1.83-1...1.83-2
-[1.83-1]: https://github.com/apicici/cimgui-love/compare/1.82-1...1.83-1
-[1.82-1]: https://github.com/apicici/cimgui-love/releases/tag/1.82-1
+[Unreleased]: https://codeberg.org/apicici/cimgui-love/compare/1.90-1...HEAD
+[1.90-1]: https://codeberg.org/apicici/cimgui-love/compare/1.89.7-1...1.90-1
+[1.89.7-1]: https://codeberg.org/apicici/cimgui-love/compare/1.89.6-1...1.89.7-1
+[1.89.6-1]: https://codeberg.org/apicici/cimgui-love/compare/1.89.5-1...1.89.6-1
+[1.89.5-1]: https://codeberg.org/apicici/cimgui-love/compare/1.89.4-1...1.89.5-1
+[1.89.4-1]: https://codeberg.org/apicici/cimgui-love/compare/1.89.3-1...1.89.4-1
+[1.89.3-1]: https://codeberg.org/apicici/cimgui-love/compare/1.89.2-2...1.89.3-1
+[1.89.2-2]: https://codeberg.org/apicici/cimgui-love/compare/1.89.2-1...1.89.2-2
+[1.89.2-1]: https://codeberg.org/apicici/cimgui-love/compare/1.89.1-1...1.89.2-1
+[1.89.1-1]: https://codeberg.org/apicici/cimgui-love/compare/1.89-1...1.89.1-1
+[1.89-1]: https://codeberg.org/apicici/cimgui-love/compare/1.88-2...1.89-1
+[1.88-2]: https://codeberg.org/apicici/cimgui-love/compare/1.88-1...1.88-2
+[1.88-1]: https://codeberg.org/apicici/cimgui-love/compare/1.87-1...1.88-1
+[1.87-1]: https://codeberg.org/apicici/cimgui-love/compare/1.87WIP-1...1.87-1
+[1.87WIP-1]: https://codeberg.org/apicici/cimgui-love/compare/1.86-1...1.87WIP-1
+[1.86-1]: https://codeberg.org/apicici/cimgui-love/compare/1.85-1...1.86-1
+[1.85-1]: https://codeberg.org/apicici/cimgui-love/compare/1.84.2-2...1.85-1
+[1.84.2-2]: https://codeberg.org/apicici/cimgui-love/compare/1.84.2-1...1.84.2-2
+[1.84.2-1]: https://codeberg.org/apicici/cimgui-love/compare/1.84.1-1...1.84.2-1
+[1.84.1-1]: https://codeberg.org/apicici/cimgui-love/compare/1.83-3...1.84.1-1
+[1.83-3]: https://codeberg.org/apicici/cimgui-love/compare/1.83-2...1.83-3
+[1.83-2]: https://codeberg.org/apicici/cimgui-love/compare/1.83-1...1.83-2
+[1.83-1]: https://codeberg.org/apicici/cimgui-love/compare/1.82-1...1.83-1
+[1.82-1]: https://codeberg.org/apicici/cimgui-love/releases/tag/1.82-1
 

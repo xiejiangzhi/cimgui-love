@@ -10,7 +10,7 @@ Currently based on version 1.90 (docking branch) of Dear ImGui and LÖVE 11.4.
 
 ## How to use
 
-Grab the appropriate [release](../../releases/) and put the `cimgui` folder (feel free to rename it) somewhere in your LÖVE project. Place the cimgui shared library (`.so`, `.dylib`, or `.dll`, depending on the system) where you prefer (not inside the .love archive, though, or you wan't be able to load it) and change `package.cpath` so that Lua can find it and `ffi.load` can access it.
+Grab the appropriate [release](https://codeberg.org/apicici/cimgui-love/releases) and put the `cimgui` folder (feel free to rename it) somewhere in your LÖVE project. Place the cimgui shared library (`.so`, `.dylib`, or `.dll`, depending on the system) where you prefer (not inside the .love archive, though, or you wan't be able to load it) and change `package.cpath` so that Lua can find it and `ffi.load` can access it.
 
 If you prefer you can compile cimgui and/or generate the wrappers yourself (useful if imgui/cimgui has been updated and this repository hasn't caught up yet) using the instructions [here](#compiling-the-library-and-generating-the-wrappers). Note that if you get the module by cloning the repository the Lua code is in the `src` folder rather than the `cimgui` one.
 
@@ -23,7 +23,7 @@ local lib_path = love.filesystem.getSaveDirectory() .. "/libraries"
 local extension = jit.os == "Windows" and "dll" or jit.os == "Linux" and "so" or jit.os == "OSX" and "dylib"
 package.cpath = string.format("%s;%s/?.%s", package.cpath, lib_path, extension)
 
-local imgui = require "cimgui" -- cimgui is the folder containing the Lua module (the "src" folder in the github repository)
+local imgui = require "cimgui" -- cimgui is the folder containing the Lua module (the "src" folder in the git repository)
 
 love.load = function()
     imgui.love.Init() -- or imgui.love.Init("RGBA32") or imgui.love.Init("Alpha8")
@@ -407,7 +407,7 @@ Gamepad navigation is supported (once enabled in `io.ConfigFlags`). Note that it
 
 If you want to compile the shared library yourself clone this repository with
 ```
-git clone --recursive https://github.com/apicici/cimgui-love.git
+git clone --recursive https://codeberg.org/apicici/cimgui-love.git
 ```
 and compile cimgui from the `cimgui` subfolder using CMake.
 
