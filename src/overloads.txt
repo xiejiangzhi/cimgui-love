@@ -46,7 +46,7 @@ GetBackgroundDrawList
 GetColorU32
     GetColorU32_Col(ImGuiCol idx,float alpha_mul)
     GetColorU32_Vec4(const ImVec4 col)
-    GetColorU32_U32(ImU32 col)
+    GetColorU32_U32(ImU32 col,float alpha_mul)
 
 GetForegroundDrawList
     GetForegroundDrawList_Nil()

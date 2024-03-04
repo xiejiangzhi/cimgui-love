@@ -1845,6 +1845,16 @@ M.DebugCheckVersionAndDataLayout = M.DebugCheckVersionAndDataLayout  or function
     local out = C.igDebugCheckVersionAndDataLayout(i1, i2, i3, i4, i5, i6, i7)
     return out
 end
+M.DebugFlashStyleColor = M.DebugFlashStyleColor  or function(i1)
+    jit.off(true)
+    local out = C.igDebugFlashStyleColor(i1)
+    return out
+end
+M.DebugStartItemPicker = M.DebugStartItemPicker  or function()
+    jit.off(true)
+    local out = C.igDebugStartItemPicker()
+    return out
+end
 M.DebugTextEncoding = M.DebugTextEncoding  or function(i1)
     jit.off(true)
     local out = C.igDebugTextEncoding(i1)
@@ -2118,9 +2128,10 @@ M.GetColorU32_Vec4 = M.GetColorU32_Vec4  or function(i1)
     local out = C.igGetColorU32_Vec4(i1)
     return out
 end
-M.GetColorU32_U32 = M.GetColorU32_U32  or function(i1)
+M.GetColorU32_U32 = M.GetColorU32_U32  or function(i1, i2)
     jit.off(true)
-    local out = C.igGetColorU32_U32(i1)
+    if i2 == nil then i2 = 1.0 end
+    local out = C.igGetColorU32_U32(i1, i2)
     return out
 end
 M.GetColumnIndex = M.GetColumnIndex  or function()
