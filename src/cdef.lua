@@ -632,7 +632,9 @@ typedef enum {
     ImGuiStyleVar_GrabMinSize,
     ImGuiStyleVar_GrabRounding,
     ImGuiStyleVar_TabRounding,
+    ImGuiStyleVar_TabBorderSize,
     ImGuiStyleVar_TabBarBorderSize,
+    ImGuiStyleVar_TableAngledHeadersAngle,
     ImGuiStyleVar_ButtonTextAlign,
     ImGuiStyleVar_SelectableTextAlign,
     ImGuiStyleVar_SeparatorTextBorderSize,
@@ -1886,14 +1888,15 @@ extern  void ImDrawList_AddCircle(ImDrawList* self,const ImVec2 center,float rad
 extern  void ImDrawList_AddCircleFilled(ImDrawList* self,const ImVec2 center,float radius,ImU32 col,int num_segments);
 extern  void ImDrawList_AddNgon(ImDrawList* self,const ImVec2 center,float radius,ImU32 col,int num_segments,float thickness);
 extern  void ImDrawList_AddNgonFilled(ImDrawList* self,const ImVec2 center,float radius,ImU32 col,int num_segments);
-extern  void ImDrawList_AddEllipse(ImDrawList* self,const ImVec2 center,float radius_x,float radius_y,ImU32 col,float rot,int num_segments,float thickness);
-extern  void ImDrawList_AddEllipseFilled(ImDrawList* self,const ImVec2 center,float radius_x,float radius_y,ImU32 col,float rot,int num_segments);
+extern  void ImDrawList_AddEllipse(ImDrawList* self,const ImVec2 center,const ImVec2 radius,ImU32 col,float rot,int num_segments,float thickness);
+extern  void ImDrawList_AddEllipseFilled(ImDrawList* self,const ImVec2 center,const ImVec2 radius,ImU32 col,float rot,int num_segments);
 extern  void ImDrawList_AddText_Vec2(ImDrawList* self,const ImVec2 pos,ImU32 col,const char* text_begin,const char* text_end);
 extern  void ImDrawList_AddText_FontPtr(ImDrawList* self,const ImFont* font,float font_size,const ImVec2 pos,ImU32 col,const char* text_begin,const char* text_end,float wrap_width,const ImVec4* cpu_fine_clip_rect);
-extern  void ImDrawList_AddPolyline(ImDrawList* self,const ImVec2* points,int num_points,ImU32 col,ImDrawFlags flags,float thickness);
-extern  void ImDrawList_AddConvexPolyFilled(ImDrawList* self,const ImVec2* points,int num_points,ImU32 col);
 extern  void ImDrawList_AddBezierCubic(ImDrawList* self,const ImVec2 p1,const ImVec2 p2,const ImVec2 p3,const ImVec2 p4,ImU32 col,float thickness,int num_segments);
 extern  void ImDrawList_AddBezierQuadratic(ImDrawList* self,const ImVec2 p1,const ImVec2 p2,const ImVec2 p3,ImU32 col,float thickness,int num_segments);
+extern  void ImDrawList_AddPolyline(ImDrawList* self,const ImVec2* points,int num_points,ImU32 col,ImDrawFlags flags,float thickness);
+extern  void ImDrawList_AddConvexPolyFilled(ImDrawList* self,const ImVec2* points,int num_points,ImU32 col);
+extern  void ImDrawList_AddConcavePolyFilled(ImDrawList* self,const ImVec2* points,int num_points,ImU32 col);
 extern  void ImDrawList_AddImage(ImDrawList* self,ImTextureID user_texture_id,const ImVec2 p_min,const ImVec2 p_max,const ImVec2 uv_min,const ImVec2 uv_max,ImU32 col);
 extern  void ImDrawList_AddImageQuad(ImDrawList* self,ImTextureID user_texture_id,const ImVec2 p1,const ImVec2 p2,const ImVec2 p3,const ImVec2 p4,const ImVec2 uv1,const ImVec2 uv2,const ImVec2 uv3,const ImVec2 uv4,ImU32 col);
 extern  void ImDrawList_AddImageRounded(ImDrawList* self,ImTextureID user_texture_id,const ImVec2 p_min,const ImVec2 p_max,const ImVec2 uv_min,const ImVec2 uv_max,ImU32 col,float rounding,ImDrawFlags flags);
@@ -1901,10 +1904,11 @@ extern  void ImDrawList_PathClear(ImDrawList* self);
 extern  void ImDrawList_PathLineTo(ImDrawList* self,const ImVec2 pos);
 extern  void ImDrawList_PathLineToMergeDuplicate(ImDrawList* self,const ImVec2 pos);
 extern  void ImDrawList_PathFillConvex(ImDrawList* self,ImU32 col);
+extern  void ImDrawList_PathFillConcave(ImDrawList* self,ImU32 col);
 extern  void ImDrawList_PathStroke(ImDrawList* self,ImU32 col,ImDrawFlags flags,float thickness);
 extern  void ImDrawList_PathArcTo(ImDrawList* self,const ImVec2 center,float radius,float a_min,float a_max,int num_segments);
 extern  void ImDrawList_PathArcToFast(ImDrawList* self,const ImVec2 center,float radius,int a_min_of_12,int a_max_of_12);
-extern  void ImDrawList_PathEllipticalArcTo(ImDrawList* self,const ImVec2 center,float radius_x,float radius_y,float rot,float a_min,float a_max,int num_segments);
+extern  void ImDrawList_PathEllipticalArcTo(ImDrawList* self,const ImVec2 center,const ImVec2 radius,float rot,float a_min,float a_max,int num_segments);
 extern  void ImDrawList_PathBezierCubicCurveTo(ImDrawList* self,const ImVec2 p2,const ImVec2 p3,const ImVec2 p4,int num_segments);
 extern  void ImDrawList_PathBezierQuadraticCurveTo(ImDrawList* self,const ImVec2 p2,const ImVec2 p3,int num_segments);
 extern  void ImDrawList_PathRect(ImDrawList* self,const ImVec2 rect_min,const ImVec2 rect_max,float rounding,ImDrawFlags flags);
@@ -2011,7 +2015,6 @@ extern  ImGuiPlatformMonitor* ImGuiPlatformMonitor_ImGuiPlatformMonitor(void);
 extern  void ImGuiPlatformMonitor_destroy(ImGuiPlatformMonitor* self);
 extern  ImGuiPlatformImeData* ImGuiPlatformImeData_ImGuiPlatformImeData(void);
 extern  void ImGuiPlatformImeData_destroy(ImGuiPlatformImeData* self);
-extern  ImGuiKey igGetKeyIndex(ImGuiKey key);
 extern  void igLogText(const char *fmt, ...);
 extern  void ImGuiTextBuffer_appendf(struct ImGuiTextBuffer *buffer, const char *fmt, ...);
 extern  float igGET_FLT_MAX(void);

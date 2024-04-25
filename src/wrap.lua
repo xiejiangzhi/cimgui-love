@@ -225,6 +225,11 @@ ImDrawList["AddCircleFilled"] = ImDrawList["AddCircleFilled"]  or function(i1, i
     local out = C.ImDrawList_AddCircleFilled(i1, i2, i3, i4, i5)
     return out
 end
+ImDrawList["AddConcavePolyFilled"] = ImDrawList["AddConcavePolyFilled"]  or function(i1, i2, i3, i4)
+    jit.off(true)
+    local out = C.ImDrawList_AddConcavePolyFilled(i1, i2, i3, i4)
+    return out
+end
 ImDrawList["AddConvexPolyFilled"] = ImDrawList["AddConvexPolyFilled"]  or function(i1, i2, i3, i4)
     jit.off(true)
     local out = C.ImDrawList_AddConvexPolyFilled(i1, i2, i3, i4)
@@ -235,19 +240,19 @@ ImDrawList["AddDrawCmd"] = ImDrawList["AddDrawCmd"]  or function(i1)
     local out = C.ImDrawList_AddDrawCmd(i1)
     return out
 end
-ImDrawList["AddEllipse"] = ImDrawList["AddEllipse"]  or function(i1, i2, i3, i4, i5, i6, i7, i8)
+ImDrawList["AddEllipse"] = ImDrawList["AddEllipse"]  or function(i1, i2, i3, i4, i5, i6, i7)
     jit.off(true)
-    if i6 == nil then i6 = 0.0 end
-    if i7 == nil then i7 = 0 end
-    if i8 == nil then i8 = 1.0 end
-    local out = C.ImDrawList_AddEllipse(i1, i2, i3, i4, i5, i6, i7, i8)
+    if i5 == nil then i5 = 0.0 end
+    if i6 == nil then i6 = 0 end
+    if i7 == nil then i7 = 1.0 end
+    local out = C.ImDrawList_AddEllipse(i1, i2, i3, i4, i5, i6, i7)
     return out
 end
-ImDrawList["AddEllipseFilled"] = ImDrawList["AddEllipseFilled"]  or function(i1, i2, i3, i4, i5, i6, i7)
+ImDrawList["AddEllipseFilled"] = ImDrawList["AddEllipseFilled"]  or function(i1, i2, i3, i4, i5, i6)
     jit.off(true)
-    if i6 == nil then i6 = 0.0 end
-    if i7 == nil then i7 = 0 end
-    local out = C.ImDrawList_AddEllipseFilled(i1, i2, i3, i4, i5, i6, i7)
+    if i5 == nil then i5 = 0.0 end
+    if i6 == nil then i6 = 0 end
+    local out = C.ImDrawList_AddEllipseFilled(i1, i2, i3, i4, i5, i6)
     return out
 end
 ImDrawList["AddImage"] = ImDrawList["AddImage"]  or function(i1, i2, i3, i4, i5, i6, i7)
@@ -418,10 +423,15 @@ ImDrawList["PathClear"] = ImDrawList["PathClear"]  or function(i1)
     local out = C.ImDrawList_PathClear(i1)
     return out
 end
-ImDrawList["PathEllipticalArcTo"] = ImDrawList["PathEllipticalArcTo"]  or function(i1, i2, i3, i4, i5, i6, i7, i8)
+ImDrawList["PathEllipticalArcTo"] = ImDrawList["PathEllipticalArcTo"]  or function(i1, i2, i3, i4, i5, i6, i7)
     jit.off(true)
-    if i8 == nil then i8 = 0 end
-    local out = C.ImDrawList_PathEllipticalArcTo(i1, i2, i3, i4, i5, i6, i7, i8)
+    if i7 == nil then i7 = 0 end
+    local out = C.ImDrawList_PathEllipticalArcTo(i1, i2, i3, i4, i5, i6, i7)
+    return out
+end
+ImDrawList["PathFillConcave"] = ImDrawList["PathFillConcave"]  or function(i1, i2)
+    jit.off(true)
+    local out = C.ImDrawList_PathFillConcave(i1, i2)
     return out
 end
 ImDrawList["PathFillConvex"] = ImDrawList["PathFillConvex"]  or function(i1, i2)
@@ -2299,11 +2309,6 @@ M.GetItemRectSize = M.GetItemRectSize  or function()
     local o1 = M.ImVec2_Nil()
     local out = C.igGetItemRectSize(o1)
     return o1, out
-end
-M.GetKeyIndex = M.GetKeyIndex  or function(i1)
-    jit.off(true)
-    local out = C.igGetKeyIndex(i1)
-    return out
 end
 M.GetKeyName = M.GetKeyName  or function(i1)
     jit.off(true)

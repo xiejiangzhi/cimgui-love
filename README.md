@@ -6,7 +6,7 @@ Inspired by [LuaJIT-ImGui](https://github.com/sonoro1234/LuaJIT-ImGui), but does
 
 Part of the LÖVE implementation (specifically the `RenderDrawLists` function)  is based on [love-imgui](https://github.com/slages/love-imgui).
 
-Currently based on version 1.90.4 (docking branch) of Dear ImGui and LÖVE 11.5.
+Currently based on version 1.90.5 (docking branch) of Dear ImGui and LÖVE 11.5.
 
 ## How to use
 
