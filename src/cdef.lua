@@ -211,8 +211,9 @@ typedef enum {
     ImGuiTreeNodeFlags_FramePadding = 1 << 10,
     ImGuiTreeNodeFlags_SpanAvailWidth = 1 << 11,
     ImGuiTreeNodeFlags_SpanFullWidth = 1 << 12,
-    ImGuiTreeNodeFlags_SpanAllColumns = 1 << 13,
-    ImGuiTreeNodeFlags_NavLeftJumpsBackHere = 1 << 14,
+    ImGuiTreeNodeFlags_SpanTextWidth = 1 << 13,
+    ImGuiTreeNodeFlags_SpanAllColumns = 1 << 14,
+    ImGuiTreeNodeFlags_NavLeftJumpsBackHere = 1 << 15,
     ImGuiTreeNodeFlags_CollapsingHeader = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_NoAutoOpenOnLog,
 }ImGuiTreeNodeFlags_;
 typedef enum {
@@ -635,6 +636,7 @@ typedef enum {
     ImGuiStyleVar_TabBorderSize,
     ImGuiStyleVar_TabBarBorderSize,
     ImGuiStyleVar_TableAngledHeadersAngle,
+    ImGuiStyleVar_TableAngledHeadersTextAlign,
     ImGuiStyleVar_ButtonTextAlign,
     ImGuiStyleVar_SelectableTextAlign,
     ImGuiStyleVar_SeparatorTextBorderSize,
@@ -847,6 +849,7 @@ struct ImGuiStyle
     float TabMinWidthForCloseButton;
     float TabBarBorderSize;
     float TableAngledHeadersAngle;
+    ImVec2 TableAngledHeadersTextAlign;
     ImGuiDir ColorButtonPosition;
     ImVec2 ButtonTextAlign;
     ImVec2 SelectableTextAlign;
@@ -1136,9 +1139,9 @@ typedef enum {
     ImDrawListFlags_AllowVtxOffset = 1 << 3,
 }ImDrawListFlags_;
 typedef struct ImVector_ImDrawVert {int Size;int Capacity;ImDrawVert* Data;} ImVector_ImDrawVert;
+typedef struct ImVector_ImVec2 {int Size;int Capacity;ImVec2* Data;} ImVector_ImVec2;
 typedef struct ImVector_ImVec4 {int Size;int Capacity;ImVec4* Data;} ImVector_ImVec4;
 typedef struct ImVector_ImTextureID {int Size;int Capacity;ImTextureID* Data;} ImVector_ImTextureID;
-typedef struct ImVector_ImVec2 {int Size;int Capacity;ImVec2* Data;} ImVector_ImVec2;
 struct ImDrawList
 {
     ImVector_ImDrawCmd CmdBuffer;
@@ -1147,15 +1150,15 @@ struct ImDrawList
     ImDrawListFlags Flags;
     unsigned int _VtxCurrentIdx;
     ImDrawListSharedData* _Data;
-    const char* _OwnerName;
     ImDrawVert* _VtxWritePtr;
     ImDrawIdx* _IdxWritePtr;
-    ImVector_ImVec4 _ClipRectStack;
-    ImVector_ImTextureID _TextureIdStack;
     ImVector_ImVec2 _Path;
     ImDrawCmdHeader _CmdHeader;
     ImDrawListSplitter _Splitter;
+    ImVector_ImVec4 _ClipRectStack;
+    ImVector_ImTextureID _TextureIdStack;
     float _FringeScale;
+    const char* _OwnerName;
 };
 typedef struct ImVector_ImDrawListPtr {int Size;int Capacity;ImDrawList** Data;} ImVector_ImDrawListPtr;
 struct ImDrawData
