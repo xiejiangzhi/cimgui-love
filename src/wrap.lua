@@ -1887,10 +1887,11 @@ M.DockSpace = M.DockSpace  or function(i1, i2, i3, i4)
     local out = C.igDockSpace(i1, i2, i3, i4)
     return out
 end
-M.DockSpaceOverViewport = M.DockSpaceOverViewport  or function(i1, i2, i3)
+M.DockSpaceOverViewport = M.DockSpaceOverViewport  or function(i1, i2, i3, i4)
     jit.off(true)
-    if i2 == nil then i2 = 0 end
-    local out = C.igDockSpaceOverViewport(i1, i2, i3)
+    if i1 == nil then i1 = 0 end
+    if i3 == nil then i3 = 0 end
+    local out = C.igDockSpaceOverViewport(i1, i2, i3, i4)
     return out
 end
 M.DragFloat = M.DragFloat  or function(i1, i2, i3, i4, i5, i6, i7)
@@ -3231,6 +3232,12 @@ M.SetNextItemOpen = M.SetNextItemOpen  or function(i1, i2)
     local out = C.igSetNextItemOpen(i1, i2)
     return out
 end
+M.SetNextItemShortcut = M.SetNextItemShortcut  or function(i1, i2)
+    jit.off(true)
+    if i2 == nil then i2 = 0 end
+    local out = C.igSetNextItemShortcut(i1, i2)
+    return out
+end
 M.SetNextItemWidth = M.SetNextItemWidth  or function(i1)
     jit.off(true)
     local out = C.igSetNextItemWidth(i1)
@@ -3394,6 +3401,12 @@ M.SetWindowSize_Str = M.SetWindowSize_Str  or function(i1, i2, i3)
     jit.off(true)
     if i3 == nil then i3 = 0 end
     local out = C.igSetWindowSize_Str(i1, i2, i3)
+    return out
+end
+M.Shortcut = M.Shortcut  or function(i1, i2)
+    jit.off(true)
+    if i2 == nil then i2 = 0 end
+    local out = C.igShortcut(i1, i2)
     return out
 end
 M.ShowAboutWindow = M.ShowAboutWindow  or function(i1)

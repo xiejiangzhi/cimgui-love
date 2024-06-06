@@ -6,7 +6,7 @@ Inspired by [LuaJIT-ImGui](https://github.com/sonoro1234/LuaJIT-ImGui), but does
 
 Part of the LÖVE implementation (specifically the `RenderDrawLists` function)  is based on [love-imgui](https://github.com/slages/love-imgui).
 
-Currently based on version 1.90.6 (docking branch) of Dear ImGui and LÖVE 11.5.
+Currently based on version 1.90.8 (docking branch) of Dear ImGui and LÖVE 11.5.
 
 ## How to use
 
@@ -217,7 +217,10 @@ bit.bor(imgui.ImGuiWindowFlags_NoTitleBar, imgui.ImGuiWindowFlags_NoBackground, 
 Prior to version 1.87-1 the flag helper functions were located in the `imgui` table. They can be moved back to the old location by running `imgui.love.RevertToOldNames()`.
 
 #### Shortcut helpers
-Dear ImGui does not currently have a way to process keyboard shortcuts defined in `MenuItem`. The Lua module contains some helper functions to easily implement and process keyboard shortcuts.
+
+**Note**: since version 1.90.7 Dear ImGui implements shortcuts. The old shortcuts feature of `cimgui-love` is still here for compatibility, but is deprecated and is not recommended for new code.
+
+The Lua module contains some helper functions to easily implement and process keyboard shortcuts defined in `MenuItem`.
 
 - 
   ```lua
