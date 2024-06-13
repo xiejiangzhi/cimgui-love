@@ -1,4 +1,5 @@
 require("ffi").cdef[[
+typedef struct FILE FILE;
 typedef struct ImDrawChannel ImDrawChannel;
 typedef struct ImDrawCmd ImDrawCmd;
 typedef struct ImDrawData ImDrawData;

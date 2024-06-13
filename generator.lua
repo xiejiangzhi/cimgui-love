@@ -20,6 +20,7 @@ tmpfile:close()
 
 local cdef = {
     'require("ffi").cdef[[',
+    'typedef struct FILE FILE;',
     data:gsub("#.-\n", ""),
     ']]'
 }
