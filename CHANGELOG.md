@@ -4,8 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
+
+## [1.91.0-1] (2024-08-14)
 ### Added
 - Compatibility of the generator with cimgui including internal API
+### Changed
+- Updated to Dear ImGui 1.91.0 (docking branch)
 
 ## [1.90.8-1] (2024-06-06)
 ### Changed
@@ -144,7 +148,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Initial release of `generator.lua` and LÖVE implementation
 - Generated the wrappers using Dear ImGui 1.82 (docking branch)
 
-[Unreleased]: https://codeberg.org/apicici/cimgui-love/compare/1.90.8-1...HEAD
+[Unreleased]: https://codeberg.org/apicici/cimgui-love/compare/1.91.0-1...HEAD
+[1.91.0-1]: https://codeberg.org/apicici/cimgui-love/compare/1.90.8-1...1.91.0-1
 [1.90.8-1]: https://codeberg.org/apicici/cimgui-love/compare/1.90.6-1...1.90.8-1
 [1.90.6-1]: https://codeberg.org/apicici/cimgui-love/compare/1.90.5-1...1.90.6-1
 [1.90.5-1]: https://codeberg.org/apicici/cimgui-love/compare/1.90.4-1...1.90.5-1

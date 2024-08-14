@@ -39,23 +39,16 @@ Combo
     Combo_Str(const char* label,int* current_item,const char* items_separated_by_zeros,int popup_max_height_in_items)
     Combo_FnStrPtr(const char* label,int* current_item,const char*(*getter)(void* user_data,int idx),void* user_data,int items_count,int popup_max_height_in_items)
 
-GetBackgroundDrawList
-    GetBackgroundDrawList_Nil()
-    GetBackgroundDrawList_ViewportPtr(ImGuiViewport* viewport)
-
 GetColorU32
     GetColorU32_Col(ImGuiCol idx,float alpha_mul)
     GetColorU32_Vec4(const ImVec4 col)
     GetColorU32_U32(ImU32 col,float alpha_mul)
 
-GetForegroundDrawList
-    GetForegroundDrawList_Nil()
-    GetForegroundDrawList_ViewportPtr(ImGuiViewport* viewport)
-
 GetID
     GetID_Str(const char* str_id)
     GetID_StrStr(const char* str_id_begin,const char* str_id_end)
     GetID_Ptr(const void* ptr_id)
+    GetID_Int(int int_id)
 
 IsRectVisible
     IsRectVisible_Nil(const ImVec2 size)
