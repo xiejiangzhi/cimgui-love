@@ -52,7 +52,7 @@ local ignored_defaults = {}
 local ignored_out_arg = {}
 local overloads = {}
 
-local degault_out_template = {
+local default_out_template = {
     [[    local &arg& = ffi.new("&type&[1]")]],
     "&arg&[0]"
 }
@@ -74,10 +74,11 @@ local arg_out_types = {
         [[    local &arg& = M.ImVector_ImWchar()]],
         [[&arg&]]
     },
-    ["float*"] = degault_out_template,
-    ["size_t*"] = degault_out_template,
-    ["unsigned char**"] = degault_out_template,
-    ["int*"] = degault_out_template,
+    ["ImGuiID*"] = default_out_template,
+    ["float*"] = default_out_template,
+    ["size_t*"] = default_out_template,
+    ["unsigned char**"] = default_out_template,
+    ["int*"] = default_out_template,
 }
 
 for _, k in ipairs(sorted_entries(defs)) do
