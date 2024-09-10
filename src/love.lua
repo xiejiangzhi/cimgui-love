@@ -15,9 +15,9 @@ local vertexformat
 local major, minor = love.getVersion()
 if major == 12 then
     vertexformat = {
-        {name="VertexPosition", format="floatvec2"},
-        {name="VertexTexCoord", format="floatvec2"},
-        {name="VertexColor", format="unorm8vec4"}
+        {location=0, format="floatvec2"},
+        {location=1, format="floatvec2"},
+        {location=2, format="unorm8vec4"}
     }
 elseif major == 11 then
     vertexformat = {
