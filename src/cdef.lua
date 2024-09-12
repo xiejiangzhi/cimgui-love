@@ -23,8 +23,8 @@ typedef struct ImGuiMultiSelectIO ImGuiMultiSelectIO;
 typedef struct ImGuiOnceUponAFrame ImGuiOnceUponAFrame;
 typedef struct ImGuiPayload ImGuiPayload;
 typedef struct ImGuiPlatformIO ImGuiPlatformIO;
-typedef struct ImGuiPlatformMonitor ImGuiPlatformMonitor;
 typedef struct ImGuiPlatformImeData ImGuiPlatformImeData;
+typedef struct ImGuiPlatformMonitor ImGuiPlatformMonitor;
 typedef struct ImGuiSelectionBasicStorage ImGuiSelectionBasicStorage;
 typedef struct ImGuiSelectionExternalStorage ImGuiSelectionExternalStorage;
 typedef struct ImGuiSelectionRequest ImGuiSelectionRequest;
@@ -70,8 +70,8 @@ struct ImGuiMultiSelectIO;
 struct ImGuiOnceUponAFrame;
 struct ImGuiPayload;
 struct ImGuiPlatformIO;
-struct ImGuiPlatformMonitor;
 struct ImGuiPlatformImeData;
+struct ImGuiPlatformMonitor;
 struct ImGuiSelectionBasicStorage;
 struct ImGuiSelectionExternalStorage;
 struct ImGuiSelectionRequest;
@@ -175,7 +175,7 @@ typedef enum {
 }ImGuiWindowFlags_;
 typedef enum {
     ImGuiChildFlags_None = 0,
-    ImGuiChildFlags_Border = 1 << 0,
+    ImGuiChildFlags_Borders = 1 << 0,
     ImGuiChildFlags_AlwaysUseWindowPadding = 1 << 1,
     ImGuiChildFlags_ResizeX = 1 << 2,
     ImGuiChildFlags_ResizeY = 1 << 3,
@@ -974,13 +974,6 @@ struct ImGuiIO
     void* BackendPlatformUserData;
     void* BackendRendererUserData;
     void* BackendLanguageUserData;
-    const char* (*GetClipboardTextFn)(void* user_data);
-    void (*SetClipboardTextFn)(void* user_data, const char* text);
-    void* ClipboardUserData;
-    _Bool (*PlatformOpenInShellFn)(ImGuiContext* ctx, const char* path);
-    void* PlatformOpenInShellUserData;
-    void (*PlatformSetImeDataFn)(ImGuiContext* ctx, ImGuiViewport* viewport, ImGuiPlatformImeData* data);
-    ImWchar PlatformLocaleDecimalPoint;
     _Bool WantCaptureMouse;
     _Bool WantCaptureKeyboard;
     _Bool WantTextInput;
@@ -1424,6 +1417,14 @@ typedef struct ImVector_ImGuiPlatformMonitor {int Size;int Capacity;ImGuiPlatfor
 typedef struct ImVector_ImGuiViewportPtr {int Size;int Capacity;ImGuiViewport** Data;} ImVector_ImGuiViewportPtr;
 struct ImGuiPlatformIO
 {
+    const char* (*Platform_GetClipboardTextFn)(ImGuiContext* ctx);
+    void (*Platform_SetClipboardTextFn)(ImGuiContext* ctx, const char* text);
+    void* Platform_ClipboardUserData;
+    _Bool (*Platform_OpenInShellFn)(ImGuiContext* ctx, const char* path);
+    void* Platform_OpenInShellUserData;
+    void (*Platform_SetImeDataFn)(ImGuiContext* ctx, ImGuiViewport* viewport, ImGuiPlatformImeData* data);
+    void* Platform_ImeUserData;
+    ImWchar Platform_LocaleDecimalPoint;
     void (*Platform_CreateWindow)(ImGuiViewport* vp);
     void (*Platform_DestroyWindow)(ImGuiViewport* vp);
     void (*Platform_ShowWindow)(ImGuiViewport* vp);
@@ -1441,6 +1442,7 @@ struct ImGuiPlatformIO
     void (*Platform_SwapBuffers)(ImGuiViewport* vp, void* render_arg);
     float (*Platform_GetWindowDpiScale)(ImGuiViewport* vp);
     void (*Platform_OnChangedViewport)(ImGuiViewport* vp);
+    ImVec4 (*Platform_GetWindowWorkAreaInsets)(ImGuiViewport* vp);
     int (*Platform_CreateVkSurface)(ImGuiViewport* vp, ImU64 vk_inst, const void* vk_allocators, ImU64* out_vk_surface);
     void (*Renderer_CreateWindow)(ImGuiViewport* vp);
     void (*Renderer_DestroyWindow)(ImGuiViewport* vp);
@@ -1474,6 +1476,7 @@ extern  void igDestroyContext(ImGuiContext* ctx);
 extern  ImGuiContext* igGetCurrentContext(void);
 extern  void igSetCurrentContext(ImGuiContext* ctx);
 extern  ImGuiIO* igGetIO(void);
+extern  ImGuiPlatformIO* igGetPlatformIO(void);
 extern  ImGuiStyle* igGetStyle(void);
 extern  void igNewFrame(void);
 extern  void igEndFrame(void);
@@ -1543,6 +1546,8 @@ extern  void igPushStyleColor_Vec4(ImGuiCol idx,const ImVec4 col);
 extern  void igPopStyleColor(int count);
 extern  void igPushStyleVar_Float(ImGuiStyleVar idx,float val);
 extern  void igPushStyleVar_Vec2(ImGuiStyleVar idx,const ImVec2 val);
+extern  void igPushStyleVarX(ImGuiStyleVar idx,float val_x);
+extern  void igPushStyleVarY(ImGuiStyleVar idx,float val_y);
 extern  void igPopStyleVar(int count);
 extern  void igPushItemFlag(ImGuiItemFlags option,_Bool enabled);
 extern  void igPopItemFlag(void);
@@ -1753,7 +1758,7 @@ extern  ImGuiTableColumnFlags igTableGetColumnFlags(int column_n);
 extern  void igTableSetColumnEnabled(int column_n,_Bool v);
 extern  int igTableGetHoveredColumn(void);
 extern  void igTableSetBgColor(ImGuiTableBgTarget target,ImU32 color,int column_n);
-extern  void igColumns(int count,const char* id,_Bool border);
+extern  void igColumns(int count,const char* id,_Bool borders);
 extern  void igNextColumn(void);
 extern  int igGetColumnIndex(void);
 extern  float igGetColumnWidth(int column_index);
@@ -1868,7 +1873,6 @@ extern  void igSetAllocatorFunctions(ImGuiMemAllocFunc alloc_func,ImGuiMemFreeFu
 extern  void igGetAllocatorFunctions(ImGuiMemAllocFunc* p_alloc_func,ImGuiMemFreeFunc* p_free_func,void** p_user_data);
 extern  void* igMemAlloc(size_t size);
 extern  void igMemFree(void* ptr);
-extern  ImGuiPlatformIO* igGetPlatformIO(void);
 extern  void igUpdatePlatformWindows(void);
 extern  void igRenderPlatformWindowsDefault(void* platform_render_arg,void* renderer_render_arg);
 extern  void igDestroyPlatformWindows(void);
@@ -2062,6 +2066,7 @@ extern  void ImDrawList__TryMergeDrawCmds(ImDrawList* self);
 extern  void ImDrawList__OnChangedClipRect(ImDrawList* self);
 extern  void ImDrawList__OnChangedTextureID(ImDrawList* self);
 extern  void ImDrawList__OnChangedVtxOffset(ImDrawList* self);
+extern  void ImDrawList__SetTextureID(ImDrawList* self,ImTextureID texture_id);
 extern  int ImDrawList__CalcCircleAutoSegmentCount(ImDrawList* self,float radius);
 extern  void ImDrawList__PathArcToFastEx(ImDrawList* self,const ImVec2 center,float radius,int a_min_sample,int a_max_sample,int a_step);
 extern  void ImDrawList__PathArcToN(ImDrawList* self,const ImVec2 center,float radius,float a_min,float a_max,int num_segments);

@@ -577,6 +577,14 @@ ImDrawList["_ResetForNewFrame"] = ImDrawList["_ResetForNewFrame"]  or function(i
     local out = C.ImDrawList__ResetForNewFrame(i1)
     return out
 end
+ImDrawList["_SetTextureID"] = ImDrawList["_SetTextureID"]  or function(i1, i2)
+    jit.off(true)
+    local ptr = ffi.cast("void *", i2)
+    _common.textures[tostring(ptr)] = i2
+    i2 = ptr
+    local out = C.ImDrawList__SetTextureID(i1, i2)
+    return out
+end
 ImDrawList["_TryMergeDrawCmds"] = ImDrawList["_TryMergeDrawCmds"]  or function(i1)
     jit.off(true)
     local out = C.ImDrawList__TryMergeDrawCmds(i1)
@@ -3121,6 +3129,16 @@ end
 M.PushStyleVar_Vec2 = M.PushStyleVar_Vec2  or function(i1, i2)
     jit.off(true)
     local out = C.igPushStyleVar_Vec2(i1, i2)
+    return out
+end
+M.PushStyleVarX = M.PushStyleVarX  or function(i1, i2)
+    jit.off(true)
+    local out = C.igPushStyleVarX(i1, i2)
+    return out
+end
+M.PushStyleVarY = M.PushStyleVarY  or function(i1, i2)
+    jit.off(true)
+    local out = C.igPushStyleVarY(i1, i2)
     return out
 end
 M.PushTextWrapPos = M.PushTextWrapPos  or function(i1)
