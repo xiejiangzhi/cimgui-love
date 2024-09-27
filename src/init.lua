@@ -11,8 +11,12 @@ M.C = ffi.load(library_path)
 
 require(path .. "enums")
 require(path .. "wrap")
-require(path .. "love")
-require(path .. "shortcuts")
+if lovr then
+  require(path .. "lovr")
+else
+  require(path .. "love")
+  require(path .. "shortcuts")
+end
 
 -- remove access to M._common
 M._common = nil
