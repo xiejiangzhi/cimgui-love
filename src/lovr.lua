@@ -10,7 +10,6 @@ local C = M.C
 local L = M.lovr
 local _common = M._common
 
--- TODO Fix
 local vertexformat = {
   { "VertexPosition", "vec2" },
   { "VertexUV", "vec2" },
@@ -147,6 +146,7 @@ local io
 local VertexShader2D = [[
   vec4 lovrmain() {
     vec2 uv = VertexPosition.xy / Resolution.xy;
+    Color = vec4(gammaToLinear(VertexColor.rgb), VertexColor.a) * Material.color * PassColor;
     return vec4(uv * 2. - 1., 1., 1.);
   }
 ]]
@@ -249,7 +249,7 @@ function L.Update(dt)
 end
 
 local function lovr_texture_test(t)
-    return t:typeOf("Texture")
+    return t:type() == "Texture"
 end
 
 -- TODO Fix
@@ -358,9 +358,10 @@ function L.RenderDrawLists(pass)
                     local obj = _common.textures[tostring(texture_id)]
                     local status, value = pcall(lovr_texture_test, obj)
                     assert(status and value, "Only LÖVE Texture objects can be passed as ImTextureID arguments.")
-                    if obj:type() == "Texture" then
-                      pass:setBlendMode("alpha", "premultiplied")
-                    end
+                    -- TODO fix, lovr texture & canvas are both Texture, need to setBlendMode?
+                    -- if obj:type() == "Texture" then
+                    --   pass:setBlendMode("alpha", "premultiplied")
+                    -- end
                     pass:setShader(DefaultShader)
                     pass:setMaterial(obj)
                 else
