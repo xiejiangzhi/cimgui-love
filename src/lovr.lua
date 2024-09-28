@@ -267,7 +267,8 @@ end
 -- }
 
 local mesh, meshvdata, meshidata
-local max_vertexcount = -math.huge
+local max_vertcount = 0
+local max_vidxcount = 0
 
 -- do
 -- local ww, wh = lovr.system.getWindowDimensions()
@@ -320,20 +321,26 @@ function L.RenderDrawLists(pass)
     -- pass:draw(testmesh)
 
     local total_vs = 0
+    local total_is = 0
     for i = 0, data.CmdListsCount - 1 do
         local cmd_list = data.CmdLists.Data[i]
         total_vs = total_vs + cmd_list.VtxBuffer.Size
+        total_is = total_is + cmd_list.IdxBuffer.Size
     end
     total_vs = math.max(5000, total_vs)
-    if total_vs > max_vertexcount then
-        max_vertexcount = total_vs
+    total_is = math.max(5000, total_is)
+    if total_vs > max_vertcount then
+        max_vertcount = total_vs
         if mesh then mesh:release() end
         if meshvdata then meshvdata:release() end
-        if meshidata then meshidata:release() end
         mesh = lovr.graphics.newMesh(vertexformat, total_vs, 'gpu')
         local vdata_size = total_vs*ffi.sizeof("ImDrawVert")
-        local idata_size = total_vs*ffi.sizeof("ImDrawIdx")
         meshvdata = lovr.data.newBlob(math.max(vdata_size, ffi.sizeof("ImDrawVert")))
+    end
+    if total_is > max_vidxcount then
+        max_vidxcount = total_is
+        if meshidata then meshidata:release() end
+        local idata_size = total_is*ffi.sizeof("ImDrawIdx")
         meshidata = lovr.data.newBlob(math.max(idata_size, ffi.sizeof("ImDrawIdx")))
     end
 
