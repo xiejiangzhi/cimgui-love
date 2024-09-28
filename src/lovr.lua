@@ -141,7 +141,7 @@ _common.textures = setmetatable({},{__mode="v"})
 _common.callbacks = setmetatable({},{__mode="v"})
 
 local cliboard_callback_get, cliboard_callback_set
-local io
+local io, platform_io
 
 local VertexShader2D = [[
   vec4 lovrmain() {
@@ -183,6 +183,7 @@ function L.Init(format)
     format = format or "RGBA32"
     C.igCreateContext(nil)
     io = C.igGetIO()
+    platform_io = C.igGetPlatformIO()
     L.BuildFontAtlas(format)
 
     -- TODO Fix
@@ -193,8 +194,8 @@ function L.Init(format)
     --     lovr.system.setClipboardText(ffi.string(text))
     -- end)
 
-    -- io.GetClipboardTextFn = cliboard_callback_get
-    -- io.SetClipboardTextFn = cliboard_callback_set
+    -- platform_io.Platform_GetClipboardTextFn = cliboard_callback_get
+    -- platform_io.Platform_SetClipboardTextFn = cliboard_callback_set
 
     local dpiscale = lovr.system.getWindowDensity()
     io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y = dpiscale, dpiscale
