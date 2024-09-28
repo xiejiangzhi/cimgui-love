@@ -13,7 +13,7 @@ require(path .. "enums")
 require(path .. "wrap")
 if lovr then
   require(path .. "lovr")
-else
+elseif love then
   require(path .. "love")
   require(path .. "shortcuts")
 end

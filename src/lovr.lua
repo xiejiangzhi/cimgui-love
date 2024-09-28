@@ -193,8 +193,8 @@ function L.Init(format)
     --     lovr.system.setClipboardText(ffi.string(text))
     -- end)
 
-    io.GetClipboardTextFn = cliboard_callback_get
-    io.SetClipboardTextFn = cliboard_callback_set
+    -- io.GetClipboardTextFn = cliboard_callback_get
+    -- io.SetClipboardTextFn = cliboard_callback_set
 
     local dpiscale = lovr.system.getWindowDensity()
     io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y = dpiscale, dpiscale
@@ -265,7 +265,7 @@ end
 --     [C.ImGuiMouseCursor_NotAllowed] = love.mouse.getSystemCursor("no"),
 -- }
 
-local mesh, meshdata
+local mesh, meshvdata, meshidata
 local max_vertexcount = -math.huge
 
 -- do
@@ -318,28 +318,48 @@ function L.RenderDrawLists(pass)
     -- pass:setShader(DefaultShader)
     -- pass:draw(testmesh)
 
+    local total_vs = 0
     for i = 0, data.CmdListsCount - 1 do
         local cmd_list = data.CmdLists.Data[i]
+        total_vs = total_vs + cmd_list.VtxBuffer.Size
+    end
+    total_vs = math.max(5000, total_vs)
+    if total_vs > max_vertexcount then
+        max_vertexcount = total_vs
+        if mesh then mesh:release() end
+        if meshvdata then meshvdata:release() end
+        if meshidata then meshidata:release() end
+        mesh = lovr.graphics.newMesh(vertexformat, total_vs, 'gpu')
+        local vdata_size = total_vs*ffi.sizeof("ImDrawVert")
+        local idata_size = total_vs*ffi.sizeof("ImDrawIdx")
+        meshvdata = lovr.data.newBlob(math.max(vdata_size, ffi.sizeof("ImDrawVert")))
+        meshidata = lovr.data.newBlob(math.max(idata_size, ffi.sizeof("ImDrawIdx")))
+    end
 
-        local vertexcount = cmd_list.VtxBuffer.Size
-        local data_size = vertexcount*ffi.sizeof("ImDrawVert")
-        if vertexcount > max_vertexcount then
-            max_vertexcount = vertexcount
-            if mesh then mesh:release() end
-            if meshdata then meshdata:release() end
-            meshdata = lovr.data.newBlob(math.max(data_size, ffi.sizeof("ImDrawVert")))
-            ffi.copy(meshdata:getPointer(), cmd_list.VtxBuffer.Data, data_size)
-            mesh = lovr.graphics.newMesh(vertexformat, meshdata)
-        else
-            ffi.copy(meshdata:getPointer(), cmd_list.VtxBuffer.Data, data_size)
-            mesh:setVertices(meshdata)
-        end
+    local vsidx, isidx = 0, 0
+    local vdata_ptr = ffi.cast('ImDrawVert*', meshvdata:getPointer())
+    local idata_ptr = ffi.cast('ImDrawIdx*', meshidata:getPointer())
+    local cmd_lists_info = {}
+    -- local draw_offset = 0
+    for i = 0, data.CmdListsCount - 1 do
+        local cmd_list = data.CmdLists.Data[i]
+        local vcount = cmd_list.VtxBuffer.Size
+        local icount = cmd_list.IdxBuffer.Size
+        ffi.copy(vdata_ptr + vsidx, cmd_list.VtxBuffer.Data, vcount*ffi.sizeof("ImDrawVert"))
+        ffi.copy(idata_ptr + isidx, cmd_list.IdxBuffer.Data, icount*ffi.sizeof("ImDrawIdx"))
+        cmd_lists_info[#cmd_lists_info + 1] = {
+          vsidx = vsidx, isidx = isidx,
+          vcount = vcount, icount = icount,
+        }
+        vsidx = vsidx + vcount
+        isidx = isidx + icount
+    end
+    mesh:setVertices(meshvdata)
+    mesh:setIndices(meshidata, 'u16')
 
-        local IdxBuffer = {}
-        for k = 1, cmd_list.IdxBuffer.Size do
-            IdxBuffer[k] = cmd_list.IdxBuffer.Data[k - 1] + 1
-        end
-        mesh:setIndices(IdxBuffer)
+    for i = 0, data.CmdListsCount - 1 do
+        local cmd_list = data.CmdLists.Data[i]
+        local list_info = cmd_lists_info[i + 1]
 
         for k = 0, cmd_list.CmdBuffer.Size - 1 do
             local cmd = cmd_list.CmdBuffer.Data[k]
@@ -370,7 +390,7 @@ function L.RenderDrawLists(pass)
                 end
 
                 pass:setScissor(clipX, clipY, clipW, clipH)
-                mesh:setDrawRange(cmd.IdxOffset + 1, cmd.ElemCount)
+                mesh:setDrawRange(list_info.isidx + cmd.IdxOffset + 1, cmd.ElemCount, list_info.vsidx)
                 pass:draw(mesh)
             end
         end

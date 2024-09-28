@@ -185,9 +185,9 @@ function L.Init(format)
     local dpiscale = love.window.getDPIScale()
     io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y = dpiscale, dpiscale
 
-    love.filesystem.createDirectory("/")
-    strings.ini_filename = love.filesystem.getSaveDirectory() .. "/imgui.ini"
-    io.IniFilename = strings.ini_filename
+    -- love.filesystem.createDirectory("/")
+    -- strings.ini_filename = love.filesystem.getSaveDirectory() .. "/imgui.ini"
+    -- io.IniFilename = strings.ini_filename
 
     strings.impl_name = "cimgui-love"
     io.BackendPlatformName = strings.impl_name
@@ -286,6 +286,10 @@ function L.RenderDrawLists()
             ffi.copy(meshdata:getFFIPointer(), cmd_list.VtxBuffer.Data, data_size)
             mesh:setVertices(meshdata)
         end
+        -- for vi = 1, 3 do
+        --   local p = cmd_list.VtxBuffer.Data[vi - 1].pos
+        --   print(i, p.x, p.y)
+        -- end
 
         local IdxBuffer = {}
         for k = 1, cmd_list.IdxBuffer.Size do
