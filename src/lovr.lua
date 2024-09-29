@@ -134,25 +134,25 @@ local lovrkeymap = {
 }
 _common.lovrkeymap = lovrkeymap
 
-local textureObject, textureShader
-local strings = {}
-
 _common.textures = setmetatable({},{__mode="v"})
 _common.callbacks = setmetatable({},{__mode="v"})
 
-local cliboard_callback_get, cliboard_callback_set
-local io, platform_io
-
-local DefaultVertexShader = [[
+local DefaultVertex2DShader = [[
   vec4 lovrmain() {
     vec2 uv = VertexPosition.xy / Resolution.xy;
     Color = vec4(gammaToLinear(VertexColor.rgb), VertexColor.a) * Material.color * PassColor;
     return vec4(uv * 2. - 1., 1., 1.);
   }
 ]]
-
-local Alpha8_shader
-local DefaultShader
+local DefaultVertex3DShader = [[
+  vec4 lovrmain() {
+    Color = vec4(gammaToLinear(VertexColor.rgb), VertexColor.a) * Material.color * PassColor;
+    vec4 vp = vec4(VertexPosition.xy * vec2(0.01, -0.01), 0., 1.0);
+    PositionWorld = vec3(WorldFromLocal * vp);
+    Normal = NormalMatrix * vec3(0, 0, 1);
+    return ViewProjection * Transform * vp;
+  }
+]]
 
 local ShaderFlags = {
   glow = false,
@@ -163,95 +163,177 @@ local ShaderFlags = {
   ambientOcclusion = false,
 }
 
-function L.Init(format, vertex_shader)
-    vertex_shader = vertex_shader or DefaultVertexShader
-    Alpha8_shader = lovr.graphics.newShader(vertex_shader, [[
-      vec4 lovrmain() {
-        float alpha = getPixel(ColorTexture, UV).r;
-        return vec4(Color.rgb, Color.a*alpha);
-      }
-    ]], {
-      flags = ShaderFlags
-    })
-    DefaultShader = lovr.graphics.newShader(vertex_shader, [[
-      vec4 lovrmain() {
-        return DefaultColor;
-      }
-    ]], {
-      flags = ShaderFlags,
-    })
+local Context = {}
+Context.__index = Context
+L.Context = Context
 
-    format = format or "RGBA32"
-    C.igCreateContext(nil)
-    io = C.igGetIO()
-    platform_io = C.igGetPlatformIO()
-    L.BuildFontAtlas(format)
+function L.build_im_font_atlas(ttf_path, size, conf)
+  local fonts = C.ImFontAtlas()
+  local config = C.ImFontConfig()
+  local ranges
 
-    -- TODO Fix
-    -- cliboard_callback_get = ffi.cast("const char* (*)(void*)", function(userdata)
-    --     return lovr.system.getClipboardText()
-    -- end)
-    -- cliboard_callback_set = ffi.cast("void (*)(void*, const char*)", function(userdata, text)
-    --     lovr.system.setClipboardText(ffi.string(text))
-    -- end)
-
-    -- platform_io.Platform_GetClipboardTextFn = cliboard_callback_get
-    -- platform_io.Platform_SetClipboardTextFn = cliboard_callback_set
-
-    local dpiscale = lovr.system.getWindowDensity()
-    io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y = dpiscale, dpiscale
-
-    lovr.filesystem.createDirectory("/")
-    strings.ini_filename = lovr.filesystem.getSaveDirectory() .. "/imgui.ini"
-    io.IniFilename = strings.ini_filename
-
-    strings.impl_name = "cimgui-lovr"
-    io.BackendPlatformName = strings.impl_name
-    io.BackendRendererName = strings.impl_name
-
-    io.BackendFlags = bit.bor(C.ImGuiBackendFlags_HasMouseCursors, C.ImGuiBackendFlags_HasSetMousePos)
-end
-
-local custom_shader
-
-function L.SetShader(shader)
-    custom_shader = shader
-end
-
-function L.BuildFontAtlas(format)
-    format = format or "RGBA32"
-    local pixels, width, height = ffi.new("unsigned char*[1]"), ffi.new("int[1]"), ffi.new("int[1]")
-    local imgdata
-
-    if format == "RGBA32" then
-        C.ImFontAtlas_GetTexDataAsRGBA32(io.Fonts, pixels, width, height, nil)
-        local datablob = lovr.data.newBlob(ffi.string(pixels[0], width[0]*height[0]*4))
-        imgdata = lovr.data.newImage(width[0], height[0], "rgba8", datablob)
-        textureShader = nil
-    elseif format == "Alpha8" then
-        C.ImFontAtlas_GetTexDataAsAlpha8(io.Fonts, pixels, width, height, nil)
-        local datablob = lovr.data.newBlob(ffi.string(pixels[0], width[0]*height[0]))
-        imgdata = lovr.data.newImage(width[0], height[0], "r8", datablob)
-        textureShader = Alpha8_shader
-    else
-        error([[Format should be either "RGBA32" or "Alpha8".]], 2)
+  if conf then
+    if conf.args then
+      for k, v in pairs(conf.args) do
+        config[k] = v
+      end
     end
 
-    textureObject = lovr.graphics.newTexture(imgdata)
+    if conf.ranges then
+      ranges = ffi.new('ImWchar[?]', #conf.ranges, conf.ranges)
+    end
+    if conf.monospaced then
+      config.GlyphMinAdvanceX = size
+    end
+  end
+
+  return fonts:AddFontFromFileTTF(ttf_path, size, config, ranges)
 end
 
-function L.Update(dt)
-    io.DisplaySize.x, io.DisplaySize.y = lovr.system.getWindowDimensions()
-    io.DeltaTime = dt
+-- local DefaultContext
+-- function L.Init(format)
+--   if DefaultContext then
+--     return
+--   end
+--   DefaultContext = Context.new(format)
+-- end
 
-    -- TODO Fix
-    -- if io.WantSetMousePos then
-    --     love.mouse.setPosition(io.MousePos.x, io.MousePos.y)
-    -- end
+-- vertex_shader: nil, 2d, 3d for vertex code
+function Context.new(font_format, vertex_shader, ini_path, im_font_atlas)
+  local self = setmetatable({}, Context)
+  if vertex_shader == '3d' then
+    vertex_shader = DefaultVertex3DShader
+  elseif vertex_shader == '2d' or not vertex_shader then
+    vertex_shader = DefaultVertex2DShader
+  end
+  self.vertex_shader = vertex_shader
+  self.alpha8_shader = lovr.graphics.newShader(vertex_shader, [[
+    vec4 lovrmain() {
+      float alpha = getPixel(ColorTexture, UV).r;
+      return vec4(Color.rgb, Color.a*alpha);
+    }
+  ]], {
+    flags = ShaderFlags
+  })
+  self.custom_shader = nil
+
+  self.default_shader = lovr.graphics.newShader(vertex_shader, [[
+    vec4 lovrmain() {
+      return DefaultColor;
+    }
+  ]], {
+    flags = ShaderFlags,
+  })
+
+  self.font_format = font_format or "RGBA32"
+  self.im_font_atlas = im_font_atlas -- TODO use shared im_font_atlas
+  self.context = C.igCreateContext(self.im_font_atlas)
+  self.activated = false
+
+  self:activate()
+  self.io = C.igGetIO()
+  self.platform_io = C.igGetPlatformIO()
+
+  -- TODO skip build for shared font
+  self.font_texture = nil
+  self.font_shader = nil
+  self:build_font_atlas(self.font_format)
+
+  -- TODO Fix
+  -- self.cliboard_callback_get = ffi.cast("const char* (*)(void*)", function(userdata)
+  --     return lovr.system.getClipboardText()
+  -- end)
+  -- self.cliboard_callback_set = ffi.cast("void (*)(void*, const char*)", function(userdata, text)
+  --     lovr.system.setClipboardText(ffi.string(text))
+  -- end)
+
+  -- self.platform_io.Platform_GetClipboardTextFn = cliboard_callback_get
+  -- self.platform_io.Platform_SetClipboardTextFn = cliboard_callback_set
+
+  local dpiscale = lovr.system.getWindowDensity()
+  self.io.DisplayFramebufferScale.x, self.io.DisplayFramebufferScale.y = dpiscale, dpiscale
+  self.io.DisplaySize.x, self.io.DisplaySize.y = lovr.system.getWindowDimensions()
+
+  if ini_path ~= false then
+    lovr.filesystem.createDirectory("/")
+    ini_path = ini_path or lovr.filesystem.getSaveDirectory() .. "/imgui.ini"
+    self.io.IniFilename = ini_path
+  end
+
+  local impl_name = "cimgui-lovr#"..string.format("%p", self)
+  self.io.BackendPlatformName = impl_name
+  self.io.BackendRendererName = impl_name
+
+  self.io.BackendFlags = bit.bor(
+    C.ImGuiBackendFlags_HasMouseCursors, C.ImGuiBackendFlags_HasSetMousePos
+  )
+
+  self.mesh = nil
+  self.mesh_vdata = nil
+  self.mesh_idata = nil
+  self.max_vertcount = 0
+  self.max_vidxcount = 0
+
+
+  return self
 end
 
-local function lovr_texture_test(t)
-    return t:type() == "Texture"
+local ActivatedContext
+function Context:activate()
+  assert(self.context, "Cannot draw for a invalid context")
+  C.igSetCurrentContext(self.context)
+  self.activated = true
+  if ActivatedContext then
+    ActivatedContext.activated = false
+  end
+  ActivatedContext = self
+end
+
+function Context:set_shader(shader)
+  self.custom_shader = shader
+end
+
+function Context:build_font_atlas(format)
+  format = format or "RGBA32"
+  local pixels, width, height = ffi.new("unsigned char*[1]"), ffi.new("int[1]"), ffi.new("int[1]")
+  local imgdata
+
+  if format == "RGBA32" then
+    C.ImFontAtlas_GetTexDataAsRGBA32(self.io.Fonts, pixels, width, height, nil)
+    local datablob = lovr.data.newBlob(ffi.string(pixels[0], width[0]*height[0]*4))
+    imgdata = lovr.data.newImage(width[0], height[0], "rgba8", datablob)
+    self.font_shader = nil
+  elseif format == "Alpha8" then
+    C.ImFontAtlas_GetTexDataAsAlpha8(self.io.Fonts, pixels, width, height, nil)
+    local datablob = lovr.data.newBlob(ffi.string(pixels[0], width[0]*height[0]))
+    imgdata = lovr.data.newImage(width[0], height[0], "r8", datablob)
+    self.font_shader = self.alpha8_shader
+  else
+    error([[Format should be either "RGBA32" or "Alpha8".]], 2)
+  end
+
+  self.font_texture = lovr.graphics.newTexture(imgdata)
+end
+
+-- auto activate
+function Context:update(dt)
+  assert(self.context, "Cannot draw for a invalid context")
+  if not self.activated then
+    self:activate()
+  end
+
+  self.io.DeltaTime = dt
+
+  -- TODO Fix
+  -- if self.io.WantSetMousePos then
+  --   love.mouse.setPosition(self.io.MousePos.x, self.io.MousePos.y)
+  -- end
+end
+
+function Context:render()
+  C.igRender()
+  -- _common.RunShortcuts()
+  self.draw_data = C.igGetDrawData()
 end
 
 -- TODO Fix
@@ -267,217 +349,215 @@ end
 --     [C.ImGuiMouseCursor_NotAllowed] = love.mouse.getSystemCursor("no"),
 -- }
 
-local mesh, meshvdata, meshidata
-local max_vertcount = 0
-local max_vidxcount = 0
+local function lovr_texture_test(t)
+  return t:type() == "Texture"
+end
 
--- do
--- local ww, wh = lovr.system.getWindowDimensions()
--- local rx, ry = ww - 100, wh - 100
--- local testmesh = lovr.graphics.newMesh(vertexformat, {
---   { 0, 0, 0, 0, 1, 1, 1, 1 },
---   { 100, 0, 0, 0, 1, 1, 1, 1 },
---   { 100, 100, 0, 0, 1, 1, 1, 1 },
---   { 0, 100, 0, 0, 1, 1, 1, 1 },
+-- tf: mat4 transform, apply transform for 3d draw. draw 2d UI if not tf
+function Context:draw(pass, tf)
+  assert(self.context, "Cannot draw for a invalid context")
+  if not self.draw_data then return end
 
---   { rx, ry, 0, 0, 1, 1, 1, 1 },
---   { ww, ry, 0, 0, 1, 1, 1, 1 },
---   { ww, wh, 0, 0, 1, 1, 1, 1 },
---   { rx, wh, 0, 0, 1, 1, 1, 1 },
--- })
--- testmesh:setIndices({ 1, 2, 3, 1, 3, 4, 5, 6, 7, 5, 7, 8 })
--- testmesh:setDrawRange(4, 6)
+  -- Avoid rendering when minimized
+  if self.io.DisplaySize.x == 0 or self.io.DisplaySize.y == 0
+    -- TODO Fix
+    -- or not love.window.isVisible()
+  then
+    return
+  end
+
+  pass:push("state")
+  pass:setFaceCull('none')
+  pass:setViewCull(false)
+  pass:setDepthWrite(false)
+
+  if tf then
+    pass:transform(tf)
+  else
+    pass:setDepthTest('none')
+  end
+
+  if not self.activated then
+    self:activate()
+  end
+
+
+  local data = self.draw_data
+
+  -- change mouse cursor
+  -- TODO Fix
+  -- if bit.band(io.ConfigFlags, C.ImGuiConfigFlags_NoMouseCursorChange) ~= C.ImGuiConfigFlags_NoMouseCursorChange then
+  --     local cursor = cursors[C.igGetMouseCursor()]
+  --     if self.io.MouseDrawCursor or not cursor then
+  --         love.mouse.setVisible(false) -- Hide OS mouse cursor if ImGui is drawing it
+  --     else
+  --         love.mouse.setVisible(true)
+  --         love.mouse.setCursor(cursor)
+  --     end
+  -- end
+
+  -- pass:setShader(DefaultShader)
+  -- pass:draw(testmesh)
+
+  local total_vs = math.max(5000, data.TotalVtxCount)
+  local total_is = math.max(5000, data.TotalIdxCount)
+  if total_vs > self.max_vertcount then
+    self.max_vertcount = total_vs
+    if self.mesh then self.mesh:release() end
+    if self.mesh_vdata then self.mesh_vdata:release() end
+    self.mesh = lovr.graphics.newMesh(vertexformat, total_vs, 'gpu')
+    local vdata_size = total_vs*ffi.sizeof("ImDrawVert")
+    self.mesh_vdata = lovr.data.newBlob(math.max(vdata_size, ffi.sizeof("ImDrawVert")))
+  end
+  if total_is > self.max_vidxcount then
+    self.max_vidxcount = total_is
+    if self.mesh_idata then self.mesh_idata:release() end
+    local idata_size = total_is*ffi.sizeof("ImDrawIdx")
+    self.mesh_idata = lovr.data.newBlob(math.max(idata_size, ffi.sizeof("ImDrawIdx")))
+  end
+
+  local vsidx, isidx = 0, 0
+  local vdata_ptr = ffi.cast('ImDrawVert*', self.mesh_vdata:getPointer())
+  local idata_ptr = ffi.cast('ImDrawIdx*', self.mesh_idata:getPointer())
+  local cmd_lists_info = {}
+  -- local draw_offset = 0
+  for i = 0, data.CmdListsCount - 1 do
+    local cmd_list = data.CmdLists.Data[i]
+    local vcount = cmd_list.VtxBuffer.Size
+    local icount = cmd_list.IdxBuffer.Size
+    ffi.copy(vdata_ptr + vsidx, cmd_list.VtxBuffer.Data, vcount*ffi.sizeof("ImDrawVert"))
+    ffi.copy(idata_ptr + isidx, cmd_list.IdxBuffer.Data, icount*ffi.sizeof("ImDrawIdx"))
+    cmd_lists_info[#cmd_lists_info + 1] = {
+      vsidx = vsidx, isidx = isidx,
+      vcount = vcount, icount = icount,
+    }
+    vsidx = vsidx + vcount
+    isidx = isidx + icount
+  end
+  self.mesh:setVertices(self.mesh_vdata)
+  self.mesh:setIndices(self.mesh_idata, 'u16')
+
+  for i = 0, data.CmdListsCount - 1 do
+    local cmd_list = data.CmdLists.Data[i]
+    local list_info = cmd_lists_info[i + 1]
+
+    for k = 0, cmd_list.CmdBuffer.Size - 1 do
+      local cmd = cmd_list.CmdBuffer.Data[k]
+      if cmd.UserCallback ~= nil then
+        local callback = _common.callbacks[ffi.string(ffi.cast("void*", cmd.UserCallback))] or cmd.UserCallback
+        callback(cmd_list, cmd)
+      elseif cmd.ElemCount > 0 then
+        local clipX, clipY = cmd.ClipRect.x, cmd.ClipRect.y
+        local clipW = cmd.ClipRect.z - clipX
+        local clipH = cmd.ClipRect.w - clipY
+
+        pass:setBlendMode("alpha", "alphamultiply")
+
+        local texture_id = C.ImDrawCmd_GetTexID(cmd)
+        if texture_id ~= nil then
+          local obj = _common.textures[tostring(texture_id)]
+          local status, value = pcall(lovr_texture_test, obj)
+          assert(status and value, "Only LÖVE Texture objects can be passed as ImTextureID arguments.")
+          -- TODO fix, lovr texture & canvas are both Texture, need to setBlendMode?
+          -- if obj:type() == "Texture" then
+          --   pass:setBlendMode("alpha", "premultiplied")
+          -- end
+          pass:setShader(self.default_shader)
+          pass:setMaterial(obj)
+        else
+          pass:setShader(self.custom_shader or self.font_shader or self.default_shader)
+          pass:setMaterial(self.font_texture)
+        end
+
+        if not tf then
+          pass:setScissor(clipX, clipY, clipW, clipH)
+        end
+        self.mesh:setDrawRange(list_info.isidx + cmd.IdxOffset + 1, cmd.ElemCount, list_info.vsidx)
+        pass:draw(self.mesh)
+      end
+    end
+  end
+  pass:pop('state')
+end
+
+function Context:destroy()
+  C.igDestroyContext(self.context)
+  self.context = nil
+  self.io = nil
+  self.platform_io = nil
+  self.activated = false
+  if ActivatedContext == self then
+    ActivatedContext = nil
+  end
+  -- TODO Fix
+  -- cliboard_callback_get:free()
+  -- cliboard_callback_set:free()
+  -- cliboard_callback_get, cliboard_callback_set = nil
+end
+
+------------------------ Input ----------------------
+
+function Context:MouseMoved(x, y)
+  -- TODO Fix
+  -- if love.window.hasMouseFocus() then
+    self.io:AddMousePosEvent(x, y)
+  -- end
+end
+
+local mouse_buttons = { true, true, true }
+function Context:MousePressed(button)
+  if mouse_buttons[button] then
+    self.io:AddMouseButtonEvent(button - 1, true)
+  end
+end
+
+function Context:MouseReleased(button)
+  if mouse_buttons[button] then
+    self.io:AddMouseButtonEvent(button - 1, false)
+  end
+end
+
+function Context:WheelMoved(x, y)
+  self.io:AddMouseWheelEvent(x, y)
+end
+
+function Context:KeyPressed(key)
+  local t = lovrkeymap[key]
+  if type(t) == "table" then
+    self.io:AddKeyEvent(t[1], true)
+    self.io:AddKeyEvent(t[2], true)
+  else
+    self.io:AddKeyEvent(t or C.ImGuiKey_None, true)
+  end
+end
+
+function Context:KeyReleased(key)
+  local t = lovrkeymap[key]
+  if type(t) == "table" then
+    self.io:AddKeyEvent(t[1], false)
+    self.io:AddKeyEvent(t[2], false)
+  else
+    self.io:AddKeyEvent(t or C.ImGuiKey_None, false)
+  end
+end
+
+function Context:TextInput(text)
+  C.ImGuiIO_AddInputCharactersUTF8(self.io, text)
+end
+
+
+
+-- function Context:JoystickAdded(joystick)
+--   if not joystick:isGamepad() then return end
+--   self.io.BackendFlags = bit.bor(self.io.BackendFlags, C.ImGuiBackendFlags_HasGamepad)
 -- end
 
--- tf: apply transform for 3d draw. draw 2d UI if not tf
-function L.RenderDrawLists(pass, tf)
-    -- Avoid rendering when minimized
-    if io.DisplaySize.x == 0 or io.DisplaySize.y == 0
-      -- TODO Fix
-      -- or not love.window.isVisible()
-    then
-      return
-    end
-
-    pass:push("state")
-    pass:setFaceCull('none')
-    pass:setViewCull(false)
-    pass:setDepthWrite(false)
-
-    if tf then
-      pass:transform(tf)
-    else
-      pass:setDepthTest('none')
-    end
-
-    -- _common.RunShortcuts()
-    local data = C.igGetDrawData()
-
-    -- change mouse cursor
-    -- TODO Fix
-    -- if bit.band(io.ConfigFlags, C.ImGuiConfigFlags_NoMouseCursorChange) ~= C.ImGuiConfigFlags_NoMouseCursorChange then
-    --     local cursor = cursors[C.igGetMouseCursor()]
-    --     if io.MouseDrawCursor or not cursor then
-    --         love.mouse.setVisible(false) -- Hide OS mouse cursor if ImGui is drawing it
-    --     else
-    --         love.mouse.setVisible(true)
-    --         love.mouse.setCursor(cursor)
-    --     end
-    -- end
-
-    -- pass:setShader(DefaultShader)
-    -- pass:draw(testmesh)
-
-    local total_vs = math.max(5000, data.TotalVtxCount)
-    local total_is = math.max(5000, data.TotalIdxCount)
-    if total_vs > max_vertcount then
-        max_vertcount = total_vs
-        if mesh then mesh:release() end
-        if meshvdata then meshvdata:release() end
-        mesh = lovr.graphics.newMesh(vertexformat, total_vs, 'gpu')
-        local vdata_size = total_vs*ffi.sizeof("ImDrawVert")
-        meshvdata = lovr.data.newBlob(math.max(vdata_size, ffi.sizeof("ImDrawVert")))
-    end
-    if total_is > max_vidxcount then
-        max_vidxcount = total_is
-        if meshidata then meshidata:release() end
-        local idata_size = total_is*ffi.sizeof("ImDrawIdx")
-        meshidata = lovr.data.newBlob(math.max(idata_size, ffi.sizeof("ImDrawIdx")))
-    end
-
-    local vsidx, isidx = 0, 0
-    local vdata_ptr = ffi.cast('ImDrawVert*', meshvdata:getPointer())
-    local idata_ptr = ffi.cast('ImDrawIdx*', meshidata:getPointer())
-    local cmd_lists_info = {}
-    -- local draw_offset = 0
-    for i = 0, data.CmdListsCount - 1 do
-        local cmd_list = data.CmdLists.Data[i]
-        local vcount = cmd_list.VtxBuffer.Size
-        local icount = cmd_list.IdxBuffer.Size
-        ffi.copy(vdata_ptr + vsidx, cmd_list.VtxBuffer.Data, vcount*ffi.sizeof("ImDrawVert"))
-        ffi.copy(idata_ptr + isidx, cmd_list.IdxBuffer.Data, icount*ffi.sizeof("ImDrawIdx"))
-        cmd_lists_info[#cmd_lists_info + 1] = {
-          vsidx = vsidx, isidx = isidx,
-          vcount = vcount, icount = icount,
-        }
-        vsidx = vsidx + vcount
-        isidx = isidx + icount
-    end
-    mesh:setVertices(meshvdata)
-    mesh:setIndices(meshidata, 'u16')
-
-    for i = 0, data.CmdListsCount - 1 do
-        local cmd_list = data.CmdLists.Data[i]
-        local list_info = cmd_lists_info[i + 1]
-
-        for k = 0, cmd_list.CmdBuffer.Size - 1 do
-            local cmd = cmd_list.CmdBuffer.Data[k]
-            if cmd.UserCallback ~= nil then
-                local callback = _common.callbacks[ffi.string(ffi.cast("void*", cmd.UserCallback))] or cmd.UserCallback
-                callback(cmd_list, cmd)
-            elseif cmd.ElemCount > 0 then
-                local clipX, clipY = cmd.ClipRect.x, cmd.ClipRect.y
-                local clipW = cmd.ClipRect.z - clipX
-                local clipH = cmd.ClipRect.w - clipY
-
-                pass:setBlendMode("alpha", "alphamultiply")
-
-                local texture_id = C.ImDrawCmd_GetTexID(cmd)
-                if texture_id ~= nil then
-                    local obj = _common.textures[tostring(texture_id)]
-                    local status, value = pcall(lovr_texture_test, obj)
-                    assert(status and value, "Only LÖVE Texture objects can be passed as ImTextureID arguments.")
-                    -- TODO fix, lovr texture & canvas are both Texture, need to setBlendMode?
-                    -- if obj:type() == "Texture" then
-                    --   pass:setBlendMode("alpha", "premultiplied")
-                    -- end
-                    pass:setShader(DefaultShader)
-                    pass:setMaterial(obj)
-                else
-                    pass:setShader(custom_shader or textureShader or DefaultShader)
-                    pass:setMaterial(textureObject)
-                end
-
-                if not tf then
-                  pass:setScissor(clipX, clipY, clipW, clipH)
-                end
-                mesh:setDrawRange(list_info.isidx + cmd.IdxOffset + 1, cmd.ElemCount, list_info.vsidx)
-                pass:draw(mesh)
-            end
-        end
-    end
-    pass:pop('state')
-end
-
-function L.MouseMoved(x, y)
-  -- TODO Fix
-    -- if love.window.hasMouseFocus() then
-        io:AddMousePosEvent(x, y)
-    -- end
-end
-
-local mouse_buttons = {true, true, true}
-
-function L.MousePressed(button)
-    if mouse_buttons[button] then
-        io:AddMouseButtonEvent(button - 1, true)
-    end
-end
-
-function L.MouseReleased(button)
-    if mouse_buttons[button] then
-        io:AddMouseButtonEvent(button - 1, false)
-    end
-end
-
-function L.WheelMoved(x, y)
-    io:AddMouseWheelEvent(x, y)
-end
-
-function L.KeyPressed(key)
-    local t = lovrkeymap[key]
-    if type(t) == "table" then
-        io:AddKeyEvent(t[1], true)
-        io:AddKeyEvent(t[2], true)
-    else
-        io:AddKeyEvent(t or C.ImGuiKey_None, true)
-    end
-end
-
-function L.KeyReleased(key)
-    local t = lovrkeymap[key]
-    if type(t) == "table" then
-        io:AddKeyEvent(t[1], false)
-        io:AddKeyEvent(t[2], false)
-    else
-        io:AddKeyEvent(t or C.ImGuiKey_None, false)
-    end
-end
-
-function L.TextInput(text)
-    C.ImGuiIO_AddInputCharactersUTF8(io, text)
-end
-
-function L.Shutdown()
-    C.igDestroyContext(nil)
-    io = nil
-    -- TODO Fix
-    -- cliboard_callback_get:free()
-    -- cliboard_callback_set:free()
-    -- cliboard_callback_get, cliboard_callback_set = nil
-end
-
-function L.JoystickAdded(joystick)
-    if not joystick:isGamepad() then return end
-    io.BackendFlags = bit.bor(io.BackendFlags, C.ImGuiBackendFlags_HasGamepad)
-end
-
 -- TODO Fix gamepad
--- function L.JoystickRemoved()
+-- function Context:JoystickRemoved()
 --     for _, joystick in ipairs(love.joystick.getJoysticks()) do
 --         if joystick:isGamepad() then return end
 --     end
---     io.BackendFlags = bit.band(io.BackendFlags, bit.bnot(C.ImGuiBackendFlags_HasGamepad))
+--     self.io.BackendFlags = bit.band(io.BackendFlags, bit.bnot(C.ImGuiBackendFlags_HasGamepad))
 -- end
 
 -- local gamepad_map = {
@@ -504,15 +584,15 @@ end
 --     righty = {C.ImGuiKey_GamepadRStickUp, C.ImGuiKey_GamepadRStickDown},
 -- }
 
--- function L.GamepadPressed(button)
+-- function Context:GamepadPressed(button)
 --     io:AddKeyEvent(gamepad_map[button] or C.ImGuiKey_None, true)
 -- end
 
--- function L.GamepadReleased(button)
+-- function Context:GamepadReleased(button)
 --     io:AddKeyEvent(gamepad_map[button] or C.ImGuiKey_None, false)
 -- end
 
--- function L.GamepadAxis(axis, value, threshold)
+-- function Context:GamepadAxis(axis, value, threshold)
 --     threshold = threshold or 0
 --     local imguikey = gamepad_map[axis]
 --     if type(imguikey) == "table" then
@@ -531,53 +611,38 @@ end
 --     end
 -- end
 
+
 -- input capture
 
-function L.GetWantCaptureMouse()
-    return io.WantCaptureMouse
+function Context:GetWantCaptureMouse()
+    return self.io.WantCaptureMouse
 end
 
-function L.GetWantCaptureKeyboard()
-    return io.WantCaptureKeyboard
+function Context:GetWantCaptureKeyboard()
+    return self.io.WantCaptureKeyboard
 end
 
-function L.GetWantTextInput()
-    return io.WantTextInput
+function Context:GetWantTextInput()
+    return self.io.WantTextInput
 end
 
 -- flag helpers
 local flags = {}
-
 for name in pairs(M) do
-    name = name:match("^(%w+Flags)_")
-    if name and not flags[name] then
-        flags[name] = true
-    end
+  name = name:match("^(%w+Flags)_")
+  if name and not flags[name] then
+    flags[name] = true
+  end
 end
 
 for name in pairs(flags) do
-    local shortname = name:gsub("^ImGui", "")
-    shortname = shortname:gsub("^Im", "")
-    L[shortname] = function(...)
-        local t = {}
-        for _, flag in ipairs({...}) do
-            t[#t + 1] = M[name .. "_" .. flag]
-        end
-        return bit.bor(unpack(t))
+  local shortname = name:gsub("^ImGui", "")
+  shortname = shortname:gsub("^Im", "")
+  L[shortname] = function(...)
+    local t = {}
+    for _, flag in ipairs({...}) do
+      t[#t + 1] = M[name .. "_" .. flag]
     end
+    return bit.bor(unpack(t))
+  end
 end
-
--- revert to old implementation names, i.e., imgui.RenderDrawLists instead of imgui.lovr.RenderDrawLists, etc.
-local old_names = {}
-
-for k, v in pairs(L) do
-    old_names[k] = v
-end
-
-function L.RevertToOldNames()
-    for k, v in pairs(old_names) do
-        M[k] = v
-    end
-end
-
-

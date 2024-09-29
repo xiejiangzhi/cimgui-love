@@ -5,96 +5,111 @@ package.cpath = lib_path..'\\?.dll;'..package.cpath
 
 local ImGui = require "src" -- cimgui is the folder containing the Lua module (the "src" folder in the github repository)
 
-local DrawIn3D = false
+local ui_2d, ui_3d1, ui_3d2
+
+local ImVec2Zero = ImGui.ImVec2_Float(0, 0)
 
 function lovr.load()
-  if DrawIn3D then
-    ImGui.lovr.Init('Alpha8', [[
-      vec4 lovrmain() {
-        Color = vec4(gammaToLinear(VertexColor.rgb), VertexColor.a) * Material.color * PassColor;
-        vec4 vp = vec4(VertexPosition.xy * vec2(0.01, -0.01), 0., 1.0);
-        PositionWorld = vec3(WorldFromLocal * vp);
-        Normal = NormalMatrix * vec3(0, 0, 1);
-        return ViewProjection * Transform * vp;
-      }
-    ]])
-  else
-    ImGui.lovr.Init('Alpha8')
-  end
+  ui_2d = ImGui.lovr.Context.new('Alpha8', '2d')
+  ui_3d1 = ImGui.lovr.Context.new('Alpha8', '3d')
+  ui_3d2 = ImGui.lovr.Context.new('Alpha8', '3d')
 end
 
 function lovr.update(dt)
-  ImGui.lovr.Update(dt)
+  ui_2d:update(dt)
+  ImGui.NewFrame() -- if NewFrame, must call render
+  ImGui.ShowDemoWindow()
+  ui_2d:render() -- EndFrame & generate draw data, must render before start other context
+
+  ui_3d1:update(dt)
+  if not ui_3d1.rendered then
+    ui_3d1.rendered = true
+    -- After executing a New Frame and rendering
+    -- you can use the drawing data to call multiple draw calls, so that it looks like a static UI
+    ImGui.NewFrame()
+    ImGui.SetNextWindowPos(ImVec2Zero, nil, ImVec2Zero)
+    ImGui.SetNextWindowSize(ImGui.ImVec2_Float(200, 200))
+    ImGui.Begin('win_3d_1')
+    ImGui.Text('3d win 1')
+    ImGui.Button('button')
+    ImGui.End()
+    ui_3d1:render()
+  end
+
+  ui_3d2:update(dt)
   ImGui.NewFrame()
+  ImGui.SetNextWindowPos(ImVec2Zero, nil, ImVec2Zero)
+  ImGui.SetNextWindowSize(ImGui.ImVec2_Float(400, 300))
+  ImGui.Begin('win_3d_2')
+  ImGui.Text('3d win 2')
+  ImGui.Text('new line')
+  ImGui.End()
+  ui_3d2:render()
 end
 
 function lovr.draw(pass)
-  -- example window
-  ImGui.ShowDemoWindow()
-
-  -- code to render ImGui
-  ImGui.Render()
   pass:sphere(vec3(0, 1.5, -0.5), vec3(0.1))
   pass:sphere(vec3(-2.5, 1.5, -4.6), vec3(1.0))
-  if DrawIn3D then
-    ImGui.lovr.RenderDrawLists(pass, mat4(
-      vec3(-3, 4, -4)
-    ))
-  else
-    ImGui.lovr.RenderDrawLists(pass)
-  end
+
+  ui_3d1:draw(pass, mat4(vec3(-3, 4, -4)))
+  ui_3d2:draw(pass, mat4(vec3(-2, 3, -3), vec3(1), quat(1.1, 0, 1, 0)))
+
+  -- -- example window
+  ui_2d:draw(pass)
 end
 
 
 function lovr.mousemoved(x, y, ...)
-  ImGui.lovr.MouseMoved(x, y)
-  if not ImGui.lovr.GetWantCaptureMouse() then
+  ui_2d:MouseMoved(x, y)
+  if not ui_2d:GetWantCaptureMouse() then
       -- your code here
   end
 end
 
 function lovr.mousepressed(x, y, button, ...)
-  ImGui.lovr.MousePressed(button)
-  if not ImGui.lovr.GetWantCaptureMouse() then
+  ui_2d:MousePressed(button)
+  if not ui_2d:GetWantCaptureMouse() then
       -- your code here
   end
 end
 
 function lovr.mousereleased(x, y, button, ...)
-  ImGui.lovr.MouseReleased(button)
-  if not ImGui.lovr.GetWantCaptureMouse() then
+  ui_2d:MouseReleased(button)
+  if not ui_2d:GetWantCaptureMouse() then
       -- your code here
   end
 end
 
 function lovr.wheelmoved(x, y)
-  ImGui.lovr.WheelMoved(x, y)
-  if not ImGui.lovr.GetWantCaptureMouse() then
+  ui_2d:WheelMoved(x, y)
+  if not ui_2d:GetWantCaptureMouse() then
       -- your code here
   end
 end
 
 function lovr.keypressed(key, ...)
-  ImGui.lovr.KeyPressed(key)
-  if not ImGui.lovr.GetWantCaptureKeyboard() then
+  ui_2d:KeyPressed(key)
+  if not ui_2d:GetWantCaptureKeyboard() then
       -- your code here
   end
 end
 
 function lovr.keyreleased(key, ...)
-  ImGui.lovr.KeyReleased(key)
-  if not ImGui.lovr.GetWantCaptureKeyboard() then
+  ui_2d:KeyReleased(key)
+  if not ui_2d:GetWantCaptureKeyboard() then
       -- your code here
   end
 end
 
 function lovr.textinput(t)
-  ImGui.lovr.TextInput(t)
-  if ImGui.lovr.GetWantCaptureKeyboard() then
+  ui_2d:TextInput(t)
+  if ui_2d:GetWantCaptureKeyboard() then
       -- your code here
   end
 end
 
 function lovr.quit()
-  return ImGui.lovr.Shutdown()
+  ui_2d:destroy()
+  ui_3d1:destroy()
+  ui_3d2:destroy()
 end
