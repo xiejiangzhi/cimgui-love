@@ -145,9 +145,11 @@ local DefaultVertex2DShader = [[
   }
 ]]
 local DefaultVertex3DShader = [[
+  layout(location = 0) out vec2 UIPos;
   vec4 lovrmain() {
     Color = vec4(gammaToLinear(VertexColor.rgb), VertexColor.a) * Material.color * PassColor;
     vec4 vp = vec4(VertexPosition.xy * vec2(0.01, -0.01), 0., 1.0);
+    UIPos = VertexPosition.xy;
     PositionWorld = vec3(WorldFromLocal * vp);
     Normal = NormalMatrix * vec3(0, 0, 1);
     return ViewProjection * Transform * vp;
@@ -207,18 +209,21 @@ function Context.new(font_format, vertex_shader, ini_path, im_font_atlas)
     vertex_shader = DefaultVertex2DShader
   end
   self.vertex_shader = vertex_shader
-  self.alpha8_shader = lovr.graphics.newShader(vertex_shader, [[
-    vec4 lovrmain() {
-      float alpha = getPixel(ColorTexture, UV).r;
-      return vec4(Color.rgb, Color.a*alpha);
-    }
-  ]], {
-    flags = ShaderFlags
-  })
-  self.custom_shader = nil
 
-  self.default_shader = lovr.graphics.newShader(vertex_shader, [[
+  self.custom_shader = nil
+  self.default_shader = lovr.graphics.newShader(self.vertex_shader, [[
+    Constants {
+      vec2 UIClipMin;
+      vec2 UIClipMax;
+    };
+    layout(location = 0) in vec2 UIPos;
+
     vec4 lovrmain() {
+      if (UIPos.x < UIClipMin.x || UIPos.y < UIClipMin.y
+        || UIPos.x > UIClipMax.x || UIPos.y > UIClipMax.y
+      ) {
+        discard;
+      }
       return DefaultColor;
     }
   ]], {
@@ -274,7 +279,6 @@ function Context.new(font_format, vertex_shader, ini_path, im_font_atlas)
   self.max_vertcount = 0
   self.max_vidxcount = 0
 
-
   return self
 end
 
@@ -307,7 +311,22 @@ function Context:build_font_atlas(format)
     C.ImFontAtlas_GetTexDataAsAlpha8(self.io.Fonts, pixels, width, height, nil)
     local datablob = lovr.data.newBlob(ffi.string(pixels[0], width[0]*height[0]))
     imgdata = lovr.data.newImage(width[0], height[0], "r8", datablob)
-    self.font_shader = self.alpha8_shader
+    self.font_shader = lovr.graphics.newShader(self.vertex_shader, [[
+      Constants {
+        vec2 UIClipMin;
+        vec2 UIClipMax;
+      };
+      layout(location = 0) in vec2 UIPos;
+      vec4 lovrmain() {
+        if (UIPos.x < UIClipMin.x || UIPos.y < UIClipMin.y
+          || UIPos.x > UIClipMax.x || UIPos.y > UIClipMax.y
+        ) {
+          discard;
+        }
+        float alpha = getPixel(ColorTexture, UV).r;
+        return vec4(Color.rgb, Color.a*alpha);
+      }
+    ]], { flags = ShaderFlags })
   else
     error([[Format should be either "RGBA32" or "Alpha8".]], 2)
   end
@@ -469,7 +488,10 @@ function Context:draw(pass, tf)
           pass:setMaterial(self.font_texture)
         end
 
-        if not tf then
+        if tf then
+          pass:send('UIClipMin', vec2(clipX, clipY))
+          pass:send('UIClipMax', vec2(clipX + clipW, clipY + clipH))
+        else
           pass:setScissor(clipX, clipY, clipW, clipH)
         end
         self.mesh:setDrawRange(list_info.isidx + cmd.IdxOffset + 1, cmd.ElemCount, list_info.vsidx)

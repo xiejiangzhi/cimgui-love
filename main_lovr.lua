@@ -30,7 +30,10 @@ function lovr.update(dt)
     ImGui.SetNextWindowPos(ImVec2Zero, nil, ImVec2Zero)
     ImGui.SetNextWindowSize(ImGui.ImVec2_Float(200, 200))
     ImGui.Begin('win_3d_1')
-    ImGui.Text('3d win 1')
+    ImGui.Dummy(ImGui.ImVec2_Float(10, 10))
+    for i = 1, 10 do
+      ImGui.Text('3d win 1')
+    end
     ImGui.Button('button')
     ImGui.End()
     ui_3d1:render()
