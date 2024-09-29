@@ -5,8 +5,22 @@ package.cpath = lib_path..'\\?.dll;'..package.cpath
 
 local ImGui = require "src" -- cimgui is the folder containing the Lua module (the "src" folder in the github repository)
 
+local DrawIn3D = false
+
 function lovr.load()
-  ImGui.lovr.Init() -- or ImGui.lovr.Init("RGBA32") or ImGui.lovr.Init("Alpha8")
+  if DrawIn3D then
+    ImGui.lovr.Init('Alpha8', [[
+      vec4 lovrmain() {
+        Color = vec4(gammaToLinear(VertexColor.rgb), VertexColor.a) * Material.color * PassColor;
+        vec4 vp = vec4(VertexPosition.xy * vec2(0.01, -0.01), 0., 1.0);
+        PositionWorld = vec3(WorldFromLocal * vp);
+        Normal = NormalMatrix * vec3(0, 0, 1);
+        return ViewProjection * Transform * vp;
+      }
+    ]])
+  else
+    ImGui.lovr.Init('Alpha8')
+  end
 end
 
 function lovr.update(dt)
@@ -20,7 +34,15 @@ function lovr.draw(pass)
 
   -- code to render ImGui
   ImGui.Render()
-  ImGui.lovr.RenderDrawLists(pass)
+  pass:sphere(vec3(0, 1.5, -0.5), vec3(0.1))
+  pass:sphere(vec3(-2.5, 1.5, -4.6), vec3(1.0))
+  if DrawIn3D then
+    ImGui.lovr.RenderDrawLists(pass, mat4(
+      vec3(-3, 4, -4)
+    ))
+  else
+    ImGui.lovr.RenderDrawLists(pass)
+  end
 end
 
 

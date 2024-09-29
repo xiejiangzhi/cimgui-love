@@ -143,7 +143,7 @@ _common.callbacks = setmetatable({},{__mode="v"})
 local cliboard_callback_get, cliboard_callback_set
 local io, platform_io
 
-local VertexShader2D = [[
+local DefaultVertexShader = [[
   vec4 lovrmain() {
     vec2 uv = VertexPosition.xy / Resolution.xy;
     Color = vec4(gammaToLinear(VertexColor.rgb), VertexColor.a) * Material.color * PassColor;
@@ -163,8 +163,9 @@ local ShaderFlags = {
   ambientOcclusion = false,
 }
 
-function L.Init(format)
-    Alpha8_shader = lovr.graphics.newShader(VertexShader2D, [[
+function L.Init(format, vertex_shader)
+    vertex_shader = vertex_shader or DefaultVertexShader
+    Alpha8_shader = lovr.graphics.newShader(vertex_shader, [[
       vec4 lovrmain() {
         float alpha = getPixel(ColorTexture, UV).r;
         return vec4(Color.rgb, Color.a*alpha);
@@ -172,7 +173,7 @@ function L.Init(format)
     ]], {
       flags = ShaderFlags
     })
-    DefaultShader = lovr.graphics.newShader(VertexShader2D, [[
+    DefaultShader = lovr.graphics.newShader(vertex_shader, [[
       vec4 lovrmain() {
         return DefaultColor;
       }
@@ -288,7 +289,8 @@ local max_vidxcount = 0
 -- testmesh:setDrawRange(4, 6)
 -- end
 
-function L.RenderDrawLists(pass)
+-- tf: apply transform for 3d draw. draw 2d UI if not tf
+function L.RenderDrawLists(pass, tf)
     -- Avoid rendering when minimized
     if io.DisplaySize.x == 0 or io.DisplaySize.y == 0
       -- TODO Fix
@@ -300,7 +302,13 @@ function L.RenderDrawLists(pass)
     pass:push("state")
     pass:setFaceCull('none')
     pass:setViewCull(false)
-    pass:setDepthTest('none')
+    pass:setDepthWrite(false)
+
+    if tf then
+      pass:transform(tf)
+    else
+      pass:setDepthTest('none')
+    end
 
     -- _common.RunShortcuts()
     local data = C.igGetDrawData()
@@ -320,15 +328,8 @@ function L.RenderDrawLists(pass)
     -- pass:setShader(DefaultShader)
     -- pass:draw(testmesh)
 
-    local total_vs = 0
-    local total_is = 0
-    for i = 0, data.CmdListsCount - 1 do
-        local cmd_list = data.CmdLists.Data[i]
-        total_vs = total_vs + cmd_list.VtxBuffer.Size
-        total_is = total_is + cmd_list.IdxBuffer.Size
-    end
-    total_vs = math.max(5000, total_vs)
-    total_is = math.max(5000, total_is)
+    local total_vs = math.max(5000, data.TotalVtxCount)
+    local total_is = math.max(5000, data.TotalIdxCount)
     if total_vs > max_vertcount then
         max_vertcount = total_vs
         if mesh then mesh:release() end
@@ -397,7 +398,9 @@ function L.RenderDrawLists(pass)
                     pass:setMaterial(textureObject)
                 end
 
-                pass:setScissor(clipX, clipY, clipW, clipH)
+                if not tf then
+                  pass:setScissor(clipX, clipY, clipW, clipH)
+                end
                 mesh:setDrawRange(list_info.isidx + cmd.IdxOffset + 1, cmd.ElemCount, list_info.vsidx)
                 pass:draw(mesh)
             end
