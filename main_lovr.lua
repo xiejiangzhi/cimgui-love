@@ -10,9 +10,9 @@ local ui_2d, ui_3d1, ui_3d2
 local ImVec2Zero = ImGui.ImVec2_Float(0, 0)
 
 function lovr.load()
-  ui_2d = ImGui.lovr.NewContext('Alpha8', '2d')
-  ui_3d1 = ImGui.lovr.NewContext('Alpha8', '3d', { ini_path = false })
-  ui_3d2 = ImGui.lovr.NewContext('Alpha8', '3d', { ini_path = false })
+  ui_2d = ImGui.lovr.NewContext('2d', { font_texture_format = 'Alpha8' })
+  ui_3d1 = ImGui.lovr.NewContext('3d', { font_texture_format = 'RGBA32', ini_path = false })
+  ui_3d2 = ImGui.lovr.NewContext('3d', { font_texture_format = 'Alpha8', ini_path = false })
 end
 
 function lovr.update(dt)

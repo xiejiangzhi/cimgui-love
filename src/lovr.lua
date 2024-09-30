@@ -168,9 +168,12 @@ local ShaderFlags = {
 local Context = {}
 Context.__index = Context
 
-function L.BuildImFontAtlas(ttf_path, size, conf)
-  local fonts = C.ImFontAtlas()
-  local config = C.ImFontConfig()
+L.SharedFontAtlas = M.ImFontAtlas()
+L.SharedFontTexture = {} -- { [format] = texture }
+
+-- return ImFont*
+function L.AddFontTTF(ttf_path, size, conf, out_font_atlas)
+  local config = M.ImFontConfig()
   local ranges
 
   if conf then
@@ -188,29 +191,43 @@ function L.BuildImFontAtlas(ttf_path, size, conf)
     end
   end
 
-  return fonts:AddFontFromFileTTF(ttf_path, size, config, ranges)
+  return out_font_atlas:AddFontFromFileTTF(ttf_path, size, config, ranges)
 end
 
+-- return texture
+function L.BuildFontAtlasTexture(font_atlas, texture_format)
+  assert(font_atlas, "font_atlas cannot be nil")
+  texture_format = texture_format or "RGBA32"
+  local pixels, width, height = ffi.new("unsigned char*[1]"), ffi.new("int[1]"), ffi.new("int[1]")
+  local imgdata
+
+  if texture_format == "RGBA32" then
+    C.ImFontAtlas_GetTexDataAsRGBA32(font_atlas, pixels, width, height, nil)
+    local datablob = lovr.data.newBlob(ffi.string(pixels[0], width[0]*height[0]*4))
+    imgdata = lovr.data.newImage(width[0], height[0], "rgba8", datablob)
+  elseif texture_format == "Alpha8" then
+    C.ImFontAtlas_GetTexDataAsAlpha8(font_atlas, pixels, width, height, nil)
+    local datablob = lovr.data.newBlob(ffi.string(pixels[0], width[0]*height[0]))
+    imgdata = lovr.data.newImage(width[0], height[0], "r8", datablob)
+  else
+    error([[Format should be either "RGBA32" or "Alpha8".]], 2)
+  end
+
+  return lovr.graphics.newTexture(imgdata)
+end
 
 function L.NewContext(...)
   return Context.new(...)
 end
-
--- local DefaultContext
--- function L.Init(format)
---   if DefaultContext then
---     return
---   end
---   DefaultContext = Context.new(format)
--- end
 
 --[[
 vertex_shader: nil, 2d, 3d for vertex code
 opts.ini_path
 opts.font_atlas
 opts.display_size { x, y }, default use lovr window size
+opts.font_texture_format, default is RGBA32
 ]]
-function Context.new(font_format, vertex_shader, opts)
+function Context.new(vertex_shader, opts)
   local self = setmetatable({}, Context)
   opts = opts or {}
   if vertex_shader == '3d' then
@@ -239,8 +256,8 @@ function Context.new(font_format, vertex_shader, opts)
     flags = ShaderFlags,
   })
 
-  self.font_format = font_format or "RGBA32"
-  self.font_atlas = opts.font_atlas -- TODO support shared font_atlas
+  self.font_texture_format = opts.font_texture_format or "RGBA32"
+  self.font_atlas = opts.font_atlas or L.SharedFontAtlas
   self.context = C.igCreateContext(self.font_atlas)
   self.activated = false
 
@@ -250,8 +267,28 @@ function Context.new(font_format, vertex_shader, opts)
 
   -- TODO skip build for shared font
   self.font_texture = nil
-  self.font_shader = nil
-  self:build_font_atlas(self.font_format)
+  self:BuildFontAtlas()
+
+  if self.font_texture_format == 'Alpha8' then
+    self.font_shader = lovr.graphics.newShader(self.vertex_shader, [[
+      Constants {
+        vec2 UIClipMin;
+        vec2 UIClipMax;
+      };
+      layout(location = 0) in vec2 UIPos;
+      vec4 lovrmain() {
+        if (UIPos.x < UIClipMin.x || UIPos.y < UIClipMin.y
+          || UIPos.x > UIClipMax.x || UIPos.y > UIClipMax.y
+        ) {
+          discard;
+        }
+        float alpha = getPixel(ColorTexture, UV).r;
+        return vec4(Color.rgb, Color.a*alpha);
+      }
+    ]], { flags = ShaderFlags })
+  else
+    self.font_shader = nil
+  end
 
   -- TODO Fix
   -- self.cliboard_callback_get = ffi.cast("const char* (*)(void*)", function(userdata)
@@ -276,12 +313,15 @@ function Context.new(font_format, vertex_shader, opts)
     self.io.IniFilename = nil
   else
     lovr.filesystem.createDirectory("/")
-    self.io.IniFilename = opts.ini_path or (lovr.filesystem.getSaveDirectory().."/imgui.ini")
+    -- save path to avoid gc string
+    self.ini_path = opts.ini_path or (lovr.filesystem.getSaveDirectory().."/imgui.ini")
+    self.io.IniFilename = self.ini_path
   end
 
-  local impl_name = "cimgui-lovr#"..string.format("%p", self)
-  self.io.BackendPlatformName = impl_name
-  self.io.BackendRendererName = impl_name
+  -- save name to avoid gc string
+  self.impl_name = opts.impl_name or ("cimgui-lovr#"..string.format("%p", self))
+  self.io.BackendPlatformName = self.impl_name
+  self.io.BackendRendererName = self.impl_name
 
   self.io.BackendFlags = bit.bor(
     C.ImGuiBackendFlags_HasMouseCursors, C.ImGuiBackendFlags_HasSetMousePos
@@ -307,45 +347,21 @@ function Context:Activate()
   ActivatedContext = self
 end
 
-function Context:set_shader(shader)
+function Context:SetShader(shader)
   self.custom_shader = shader
 end
 
-function Context:build_font_atlas(format)
-  format = format or "RGBA32"
-  local pixels, width, height = ffi.new("unsigned char*[1]"), ffi.new("int[1]"), ffi.new("int[1]")
-  local imgdata
-
-  if format == "RGBA32" then
-    C.ImFontAtlas_GetTexDataAsRGBA32(self.io.Fonts, pixels, width, height, nil)
-    local datablob = lovr.data.newBlob(ffi.string(pixels[0], width[0]*height[0]*4))
-    imgdata = lovr.data.newImage(width[0], height[0], "rgba8", datablob)
-    self.font_shader = nil
-  elseif format == "Alpha8" then
-    C.ImFontAtlas_GetTexDataAsAlpha8(self.io.Fonts, pixels, width, height, nil)
-    local datablob = lovr.data.newBlob(ffi.string(pixels[0], width[0]*height[0]))
-    imgdata = lovr.data.newImage(width[0], height[0], "r8", datablob)
-    self.font_shader = lovr.graphics.newShader(self.vertex_shader, [[
-      Constants {
-        vec2 UIClipMin;
-        vec2 UIClipMax;
-      };
-      layout(location = 0) in vec2 UIPos;
-      vec4 lovrmain() {
-        if (UIPos.x < UIClipMin.x || UIPos.y < UIClipMin.y
-          || UIPos.x > UIClipMax.x || UIPos.y > UIClipMax.y
-        ) {
-          discard;
-        }
-        float alpha = getPixel(ColorTexture, UV).r;
-        return vec4(Color.rgb, Color.a*alpha);
-      }
-    ]], { flags = ShaderFlags })
+function Context:BuildFontAtlas()
+  if self.font_atlas == L.SharedFontAtlas then
+    if not L.SharedFontTexture[self.font_texture_format] then
+      L.SharedFontTexture[self.font_texture_format] = L.BuildFontAtlasTexture(
+        L.SharedFontAtlas, self.font_texture_format
+      )
+    end
+    self.font_texture = L.SharedFontTexture[self.font_texture_format]
   else
-    error([[Format should be either "RGBA32" or "Alpha8".]], 2)
+    self.font_texture = L.BuildFontAtlasTexture(self.io.Fonts, self.font_texture_format)
   end
-
-  self.font_texture = lovr.graphics.newTexture(imgdata)
 end
 
 -- auto activate
