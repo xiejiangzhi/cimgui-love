@@ -9,7 +9,13 @@ local ui_2d, ui_3d1, ui_3d2
 
 local ImVec2Zero = ImGui.ImVec2_Float(0, 0)
 
+local IconFont
 function lovr.load()
+  ImGui.lovr.SharedFontAtlas:AddFontDefault(nil)
+  if lovr.filesystem.isFile('AwesomeFont.otf') then
+    IconFont = ImGui.lovr.AddSharedFontTTF('AwesomeFont.otf', 28, { ranges = { 0xe005, 0xf8ff, 0 } })
+  end
+
   ui_2d = ImGui.lovr.NewContext('2d', { font_texture_format = 'Alpha8' })
   ui_3d1 = ImGui.lovr.NewContext('3d', { font_texture_format = 'RGBA32', ini_path = false })
   ui_3d2 = ImGui.lovr.NewContext('3d', { font_texture_format = 'Alpha8', ini_path = false })
@@ -19,6 +25,7 @@ function lovr.update(dt)
   ui_2d:BeginFrame(dt) -- auto new frame, must call render if update
   ImGui.ShowDemoWindow()
   ui_2d:Render() -- EndFrame & generate draw data, must render before start other context
+
 
   if not ui_3d1.rendered then
     ui_3d1.rendered = true
@@ -43,6 +50,15 @@ function lovr.update(dt)
   ImGui.Begin('win_3d_2')
   ImGui.Text('3d win 2')
   ImGui.Text('new line')
+  ImGui.Text('icon')
+  if IconFont then
+    ImGui.PushStyleColor_Vec4(0, ImGui.ImVec4_Float(1, 0, 0, 1))
+    ImGui.PushFont(IconFont)
+    ImGui.Text('\u{f369}')
+    ImGui.Text('\u{f036}')
+    ImGui.PopFont()
+    ImGui.PopStyleColor(1)
+  end
   ImGui.End()
   ui_3d2:Render()
 end

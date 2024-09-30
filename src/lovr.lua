@@ -174,6 +174,7 @@ L.SharedFontTexture = {} -- { [format] = texture }
 -- return ImFont*
 function L.AddFontTTF(ttf_path, size, conf, out_font_atlas)
   local config = M.ImFontConfig()
+  size = size or 16
   local ranges
 
   if conf then
@@ -214,6 +215,19 @@ function L.BuildFontAtlasTexture(font_atlas, texture_format)
   end
 
   return lovr.graphics.newTexture(imgdata)
+end
+
+function L.AddSharedFontTTF(ttf_path, size, conf)
+  local font = L.AddFontTTF(ttf_path, size, conf, L.SharedFontAtlas)
+  L.SharedFontTexture = {}
+  return font
+end
+
+function L.FetchSharedFontTexture(format)
+  if not L.SharedFontTexture[format] then
+    L.SharedFontTexture[format] = L.BuildFontAtlasTexture(L.SharedFontAtlas, format)
+  end
+  return L.SharedFontTexture[format]
 end
 
 function L.NewContext(...)
@@ -358,7 +372,8 @@ function Context:BuildFontAtlas()
         L.SharedFontAtlas, self.font_texture_format
       )
     end
-    self.font_texture = L.SharedFontTexture[self.font_texture_format]
+    self.use_shared_font_texture = true
+    self.font_texture = nil
   else
     self.font_texture = L.BuildFontAtlasTexture(self.io.Fonts, self.font_texture_format)
   end
@@ -391,6 +406,11 @@ function Context:BeginFrame(dt)
   -- end
 
   -- _common.RunShortcuts()
+
+  if self.use_shared_font_texture then
+    -- make sure the font atlas is initialized
+    self.font_texture = L.FetchSharedFontTexture(self.font_texture_format)
+  end
 
   C.igNewFrame() -- if NewFrame, must call render
 end
