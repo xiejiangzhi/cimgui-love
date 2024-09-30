@@ -10,23 +10,21 @@ local ui_2d, ui_3d1, ui_3d2
 local ImVec2Zero = ImGui.ImVec2_Float(0, 0)
 
 function lovr.load()
-  ui_2d = ImGui.lovr.Context.new('Alpha8', '2d')
-  ui_3d1 = ImGui.lovr.Context.new('Alpha8', '3d')
-  ui_3d2 = ImGui.lovr.Context.new('Alpha8', '3d')
+  ui_2d = ImGui.lovr.NewContext('Alpha8', '2d')
+  ui_3d1 = ImGui.lovr.NewContext('Alpha8', '3d')
+  ui_3d2 = ImGui.lovr.NewContext('Alpha8', '3d')
 end
 
 function lovr.update(dt)
-  ui_2d:update(dt)
-  ImGui.NewFrame() -- if NewFrame, must call render
+  ui_2d:BeginFrame(dt) -- auto new frame, must call render if update
   ImGui.ShowDemoWindow()
-  ui_2d:render() -- EndFrame & generate draw data, must render before start other context
+  ui_2d:Render() -- EndFrame & generate draw data, must render before start other context
 
-  ui_3d1:update(dt)
   if not ui_3d1.rendered then
     ui_3d1.rendered = true
+    ui_3d1:BeginFrame(dt)
     -- After executing a New Frame and rendering
     -- you can use the drawing data to call multiple draw calls, so that it looks like a static UI
-    ImGui.NewFrame()
     ImGui.SetNextWindowPos(ImVec2Zero, nil, ImVec2Zero)
     ImGui.SetNextWindowSize(ImGui.ImVec2_Float(200, 200))
     ImGui.Begin('win_3d_1')
@@ -36,29 +34,28 @@ function lovr.update(dt)
     end
     ImGui.Button('button')
     ImGui.End()
-    ui_3d1:render()
+    ui_3d1:Render()
   end
 
-  ui_3d2:update(dt)
-  ImGui.NewFrame()
+  ui_3d2:BeginFrame(dt)
   ImGui.SetNextWindowPos(ImVec2Zero, nil, ImVec2Zero)
   ImGui.SetNextWindowSize(ImGui.ImVec2_Float(400, 300))
   ImGui.Begin('win_3d_2')
   ImGui.Text('3d win 2')
   ImGui.Text('new line')
   ImGui.End()
-  ui_3d2:render()
+  ui_3d2:Render()
 end
 
 function lovr.draw(pass)
   pass:sphere(vec3(0, 1.5, -0.5), vec3(0.1))
   pass:sphere(vec3(-2.5, 1.5, -4.6), vec3(1.0))
 
-  ui_3d1:draw(pass, mat4(vec3(-3, 4, -4)))
-  ui_3d2:draw(pass, mat4(vec3(-2, 3, -3), vec3(1), quat(1.1, 0, 1, 0)))
+  ui_3d1:Draw(pass, mat4(vec3(-3, 4, -4)))
+  ui_3d2:Draw(pass, mat4(vec3(-2, 3, -3), vec3(1), quat(1.1, 0, 1, 0)))
 
   -- -- example window
-  ui_2d:draw(pass)
+  ui_2d:Draw(pass)
 end
 
 
@@ -112,7 +109,7 @@ function lovr.textinput(t)
 end
 
 function lovr.quit()
-  ui_2d:destroy()
-  ui_3d1:destroy()
-  ui_3d2:destroy()
+  ui_2d:Destroy()
+  ui_3d1:Destroy()
+  ui_3d2:Destroy()
 end

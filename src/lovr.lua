@@ -167,9 +167,8 @@ local ShaderFlags = {
 
 local Context = {}
 Context.__index = Context
-L.Context = Context
 
-function L.build_im_font_atlas(ttf_path, size, conf)
+function L.BuildImFontAtlas(ttf_path, size, conf)
   local fonts = C.ImFontAtlas()
   local config = C.ImFontConfig()
   local ranges
@@ -192,6 +191,11 @@ function L.build_im_font_atlas(ttf_path, size, conf)
   return fonts:AddFontFromFileTTF(ttf_path, size, config, ranges)
 end
 
+
+function L.NewContext(...)
+  return Context.new(...)
+end
+
 -- local DefaultContext
 -- function L.Init(format)
 --   if DefaultContext then
@@ -200,15 +204,20 @@ end
 --   DefaultContext = Context.new(format)
 -- end
 
--- vertex_shader: nil, 2d, 3d for vertex code
-function Context.new(font_format, vertex_shader, ini_path, im_font_atlas)
+--[[
+vertex_shader: nil, 2d, 3d for vertex code
+opts.ini_path
+opts.im_font_atlas
+opts.display_size { x, y }, default use lovr window size
+]]
+function Context.new(font_format, vertex_shader, opts)
   local self = setmetatable({}, Context)
+  opts = opts or {}
   if vertex_shader == '3d' then
-    vertex_shader = DefaultVertex3DShader
+    self.vertex_shader = DefaultVertex3DShader
   elseif vertex_shader == '2d' or not vertex_shader then
-    vertex_shader = DefaultVertex2DShader
+    self.vertex_shader = DefaultVertex2DShader
   end
-  self.vertex_shader = vertex_shader
 
   self.custom_shader = nil
   self.default_shader = lovr.graphics.newShader(self.vertex_shader, [[
@@ -231,11 +240,11 @@ function Context.new(font_format, vertex_shader, ini_path, im_font_atlas)
   })
 
   self.font_format = font_format or "RGBA32"
-  self.im_font_atlas = im_font_atlas -- TODO use shared im_font_atlas
+  self.im_font_atlas = opts.im_font_atlas -- TODO support shared im_font_atlas
   self.context = C.igCreateContext(self.im_font_atlas)
   self.activated = false
 
-  self:activate()
+  self:Activate()
   self.io = C.igGetIO()
   self.platform_io = C.igGetPlatformIO()
 
@@ -257,12 +266,19 @@ function Context.new(font_format, vertex_shader, ini_path, im_font_atlas)
 
   local dpiscale = lovr.system.getWindowDensity()
   self.io.DisplayFramebufferScale.x, self.io.DisplayFramebufferScale.y = dpiscale, dpiscale
-  self.io.DisplaySize.x, self.io.DisplaySize.y = lovr.system.getWindowDimensions()
+  if opts.display_size then
+    self.io.DisplaySize.x, self.io.DisplaySize.y = unpack(opts.display_size)
+  else
+    self.io.DisplaySize.x, self.io.DisplaySize.y = lovr.system.getWindowDimensions()
+  end
 
-  if ini_path ~= false then
+  if opts.ini_path == false then
+    -- It seems to have no effect.
+    -- After setting it to nil, a file named ‘#’ will be generated in the current directory.
+    self.io.IniFilename = nil
+  else
     lovr.filesystem.createDirectory("/")
-    ini_path = ini_path or lovr.filesystem.getSaveDirectory() .. "/imgui.ini"
-    self.io.IniFilename = ini_path
+    self.io.IniFilename = opts.ini_path or lovr.filesystem.getSaveDirectory() .. "/imgui.ini"
   end
 
   local impl_name = "cimgui-lovr#"..string.format("%p", self)
@@ -283,7 +299,7 @@ function Context.new(font_format, vertex_shader, ini_path, im_font_atlas)
 end
 
 local ActivatedContext
-function Context:activate()
+function Context:Activate()
   assert(self.context, "Cannot draw for a invalid context")
   C.igSetCurrentContext(self.context)
   self.activated = true
@@ -335,10 +351,10 @@ function Context:build_font_atlas(format)
 end
 
 -- auto activate
-function Context:update(dt)
+function Context:BeginFrame(dt)
   assert(self.context, "Cannot draw for a invalid context")
   if not self.activated then
-    self:activate()
+    self:Activate()
   end
 
   self.io.DeltaTime = dt
@@ -347,12 +363,34 @@ function Context:update(dt)
   -- if self.io.WantSetMousePos then
   --   love.mouse.setPosition(self.io.MousePos.x, self.io.MousePos.y)
   -- end
+
+  -- TODO Fix
+  -- change mouse cursor
+  -- if bit.band(io.ConfigFlags, C.ImGuiConfigFlags_NoMouseCursorChange) ~= C.ImGuiConfigFlags_NoMouseCursorChange then
+  --     local cursor = cursors[C.igGetMouseCursor()]
+  --     if self.io.MouseDrawCursor or not cursor then
+  --         love.mouse.setVisible(false) -- Hide OS mouse cursor if ImGui is drawing it
+  --     else
+  --         love.mouse.setVisible(true)
+  --         love.mouse.setCursor(cursor)
+  --     end
+  -- end
+
+  -- _common.RunShortcuts()
+
+  C.igNewFrame() -- if NewFrame, must call render
 end
 
-function Context:render()
+function Context:Render()
+  assert(self.context, "Cannot draw for a invalid context")
   C.igRender()
-  -- _common.RunShortcuts()
-  self.draw_data = C.igGetDrawData()
+  if self.io.DisplaySize.x == 0 or self.io.DisplaySize.y == 0
+    -- or not love.window.isVisible()
+  then
+    self.draw_data = nil
+  else
+    self.draw_data = C.igGetDrawData()
+  end
 end
 
 -- TODO Fix
@@ -373,17 +411,8 @@ local function lovr_texture_test(t)
 end
 
 -- tf: mat4 transform, apply transform for 3d draw. draw 2d UI if not tf
-function Context:draw(pass, tf)
-  assert(self.context, "Cannot draw for a invalid context")
+function Context:Draw(pass, tf)
   if not self.draw_data then return end
-
-  -- Avoid rendering when minimized
-  if self.io.DisplaySize.x == 0 or self.io.DisplaySize.y == 0
-    -- TODO Fix
-    -- or not love.window.isVisible()
-  then
-    return
-  end
 
   pass:push("state")
   pass:setFaceCull('none')
@@ -397,26 +426,10 @@ function Context:draw(pass, tf)
   end
 
   if not self.activated then
-    self:activate()
+    self:Activate()
   end
 
-
   local data = self.draw_data
-
-  -- change mouse cursor
-  -- TODO Fix
-  -- if bit.band(io.ConfigFlags, C.ImGuiConfigFlags_NoMouseCursorChange) ~= C.ImGuiConfigFlags_NoMouseCursorChange then
-  --     local cursor = cursors[C.igGetMouseCursor()]
-  --     if self.io.MouseDrawCursor or not cursor then
-  --         love.mouse.setVisible(false) -- Hide OS mouse cursor if ImGui is drawing it
-  --     else
-  --         love.mouse.setVisible(true)
-  --         love.mouse.setCursor(cursor)
-  --     end
-  -- end
-
-  -- pass:setShader(DefaultShader)
-  -- pass:draw(testmesh)
 
   local total_vs = math.max(5000, data.TotalVtxCount)
   local total_is = math.max(5000, data.TotalIdxCount)
@@ -502,11 +515,12 @@ function Context:draw(pass, tf)
   pass:pop('state')
 end
 
-function Context:destroy()
+function Context:Destroy()
   C.igDestroyContext(self.context)
   self.context = nil
   self.io = nil
   self.platform_io = nil
+  self.draw_data = nil
   self.activated = false
   if ActivatedContext == self then
     ActivatedContext = nil
