@@ -207,7 +207,7 @@ end
 --[[
 vertex_shader: nil, 2d, 3d for vertex code
 opts.ini_path
-opts.im_font_atlas
+opts.font_atlas
 opts.display_size { x, y }, default use lovr window size
 ]]
 function Context.new(font_format, vertex_shader, opts)
@@ -240,8 +240,8 @@ function Context.new(font_format, vertex_shader, opts)
   })
 
   self.font_format = font_format or "RGBA32"
-  self.im_font_atlas = opts.im_font_atlas -- TODO support shared im_font_atlas
-  self.context = C.igCreateContext(self.im_font_atlas)
+  self.font_atlas = opts.font_atlas -- TODO support shared font_atlas
+  self.context = C.igCreateContext(self.font_atlas)
   self.activated = false
 
   self:Activate()
@@ -273,12 +273,10 @@ function Context.new(font_format, vertex_shader, opts)
   end
 
   if opts.ini_path == false then
-    -- It seems to have no effect.
-    -- After setting it to nil, a file named ‘#’ will be generated in the current directory.
     self.io.IniFilename = nil
   else
     lovr.filesystem.createDirectory("/")
-    self.io.IniFilename = opts.ini_path or lovr.filesystem.getSaveDirectory() .. "/imgui.ini"
+    self.io.IniFilename = opts.ini_path or (lovr.filesystem.getSaveDirectory().."/imgui.ini")
   end
 
   local impl_name = "cimgui-lovr#"..string.format("%p", self)

@@ -11,8 +11,8 @@ local ImVec2Zero = ImGui.ImVec2_Float(0, 0)
 
 function lovr.load()
   ui_2d = ImGui.lovr.NewContext('Alpha8', '2d')
-  ui_3d1 = ImGui.lovr.NewContext('Alpha8', '3d')
-  ui_3d2 = ImGui.lovr.NewContext('Alpha8', '3d')
+  ui_3d1 = ImGui.lovr.NewContext('Alpha8', '3d', { ini_path = false })
+  ui_3d2 = ImGui.lovr.NewContext('Alpha8', '3d', { ini_path = false })
 end
 
 function lovr.update(dt)
