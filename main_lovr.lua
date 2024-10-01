@@ -17,15 +17,35 @@ function lovr.load()
   end
 
   ui_2d = ImGui.lovr.NewContext('2d', { font_texture_format = 'Alpha8' })
-  ui_3d1 = ImGui.lovr.NewContext('3d', { font_texture_format = 'RGBA32', ini_path = false })
-  ui_3d2 = ImGui.lovr.NewContext('3d', { font_texture_format = 'Alpha8', ini_path = false })
+  ui_3d1 = ImGui.lovr.NewContext('3d', {
+    font_texture_format = 'RGBA32', ini_path = false, viewport = vec2(200, 200)
+  })
+  ui_3d2 = ImGui.lovr.NewContext('3d', {
+    font_texture_format = 'Alpha8', ini_path = false, viewport = vec2(400, 300)
+  })
 end
+
+local fps = 0
+local count_frames = 0
+local count_ts = 0
+local count_time = 1
 
 function lovr.update(dt)
   ui_2d:BeginFrame(dt) -- auto new frame, must call render if update
   ImGui.ShowDemoWindow()
+  ImGui.SetNextWindowPos(ImVec2Zero, nil, ImVec2Zero)
+  ImGui.SetNextWindowSize(ImGui.ImVec2_Float(200, 100))
+  ImGui.Begin("##FPS")
+  count_ts = count_ts + dt
+  count_frames = count_frames + 1
+  if count_ts >= count_time then
+    fps = count_frames
+    count_ts = 0
+    count_frames = 0
+  end
+  ImGui.Text(string.format("FPS: %i", fps))
+  ImGui.End()
   ui_2d:Render() -- EndFrame & generate draw data, must render before start other context
-
 
   if not ui_3d1.rendered then
     ui_3d1.rendered = true
@@ -67,8 +87,11 @@ function lovr.draw(pass)
   pass:sphere(vec3(0, 1.5, -0.5), vec3(0.1))
   pass:sphere(vec3(-2.5, 1.5, -4.6), vec3(1.0))
 
-  ui_3d1:Draw(pass, mat4(vec3(-3, 4, -4)))
-  ui_3d2:Draw(pass, mat4(vec3(-2, 3, -3), vec3(1), quat(1.1, 0, 1, 0)))
+  ui_3d1:Draw(pass, mat4(vec3(-3, 4, -4)), { viewport_debug = true, pivot = vec2(0.5, 0.5) })
+  ui_3d2:Draw(pass, mat4(vec3(-2, 3, -4), vec3(1), quat(-0.8, 1, 1, 0)), {
+    viewport_debug = true,
+    pivot = { x = 0.5, y = 0 }
+  })
 
   -- -- example window
   ui_2d:Draw(pass)

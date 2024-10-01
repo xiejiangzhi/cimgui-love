@@ -120,15 +120,16 @@ end
 -------------------------
 
 --[[
-vertex_shader: nil, 2d, 3d for vertex code
+vertex_shader: nil, 2d, 3d or vertex shader code
 opts.ini_path
 opts.font_atlas
-opts.display_size { x, y }, default use lovr window size
+opts.viewport: { x = x, y = y }, display area size, clip content that out the area, default use lovr window size
 opts.font_texture_format, default is RGBA32
 ]]
 function Context.new(vertex_shader, opts)
   local self = setmetatable({}, Context)
   opts = opts or {}
+
   if vertex_shader == '3d' then
     self.vertex_shader = DefaultVertex3DShader
   elseif vertex_shader == '2d' or not vertex_shader then
@@ -202,8 +203,8 @@ function Context.new(vertex_shader, opts)
 
   local dpiscale = lovr.system.getWindowDensity()
   self.io.DisplayFramebufferScale.x, self.io.DisplayFramebufferScale.y = dpiscale, dpiscale
-  if opts.display_size then
-    self.io.DisplaySize.x, self.io.DisplaySize.y = unpack(opts.display_size)
+  if opts.viewport then
+    self.io.DisplaySize.x, self.io.DisplaySize.y = opts.viewport.x, opts.viewport.y
   else
     self.io.DisplaySize.x, self.io.DisplaySize.y = lovr.system.getWindowDimensions()
   end
@@ -329,17 +330,42 @@ local function lovr_texture_test(t)
   return t:type() == "Texture"
 end
 
+local DefaultDrawOpts = {}
 -- tf: mat4 transform, apply transform for 3d draw. draw 2d UI if not tf
-function Context:Draw(pass, tf)
+-- opts.pivot: { x = x, y = y }
+-- opts.viewport_debug
+function Context:Draw(pass, tf, opts)
   if not self.draw_data then return end
 
   pass:push("state")
+  pass:push('transform')
+
   pass:setFaceCull('none')
   pass:setViewCull(false)
   pass:setDepthWrite(false)
+  opts = opts or DefaultDrawOpts
 
   if tf then
+    local vsize = self.io.DisplaySize
+    if opts.viewport_debug then
+      pass:sphere(tf * mat4(vec3(0), vec3(0.02)))
+      if opts.pivot then
+        local w, h = vsize.x * 0.01, vsize.y * 0.01
+        pass:setColor(0.5, 0.5, 0.5, 1)
+        pass:plane(tf * mat4(vec3(w * 0.5, -h * 0.5, 0), vec3(w, h, 1)), 'line')
+        pass:setColor(1, 1, 1, 1)
+      end
+    end
+    if opts.pivot then
+      local ox, oy = vsize.x * opts.pivot.x, vsize.y * opts.pivot.y
+      tf:mul(mat4(vec3(-ox * 0.01, oy * 0.01, 0), vec3(1)))
+    end
+    if opts.viewport_debug then
+      local w, h =vsize.x * 0.01, vsize.y * 0.01
+      pass:plane(tf * mat4(vec3(w * 0.5, -h * 0.5, 0), vec3(w, h, 1)), 'line')
+    end
     pass:transform(tf)
+
   else
     pass:setDepthTest('none')
   end
@@ -431,6 +457,8 @@ function Context:Draw(pass, tf)
       end
     end
   end
+
+  pass:pop('transform')
   pass:pop('state')
 end
 
