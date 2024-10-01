@@ -12,6 +12,7 @@ M.C = ffi.load(library_path)
 require(path .. "enums")
 require(path .. "wrap")
 if lovr then
+  require(path .. "lovr_conf")
   require(path .. "lovr")
 elseif love then
   require(path .. "love")
