@@ -11,7 +11,12 @@ end
 ------------------
 local cparser = require("cparser.cparser")
 
-local tmpfile = io.tmpfile()
+local tmpfile
+if package.config:sub(1,1) == '\\' then
+  tmpfile = io.open((os.getenv("TEMP") or os.getenv("TMP"))..'\\'..os.tmpname(), 'w+')
+else
+  tmpfile = io.tmpfile()
+end
 cparser.cpp("cimgui/cimgui.h", tmpfile, {"-U__GNUC__", "-DCIMGUI_DEFINE_ENUMS_AND_STRUCTS"})
 
 tmpfile:seek("set")
@@ -172,7 +177,7 @@ templates.texture_id =
 [[    local ptr = ffi.cast("void *", &arg&)
     _common.textures[tostring(ptr)] = &arg&
     &arg& = ptr]]
-    
+
 templates.drawcallback =
 [[    if not ffi.istype("ImDrawCallback", &arg&) then
         local str = tostring(&arg&)
@@ -292,7 +297,7 @@ for _, name in ipairs(sorted_entries(classes)) do
     elseif #class.constructors > 1 then
         overloads[#overloads + 1] = name
         for i, c in ipairs(class.constructors) do
-            overloads[#overloads + 1] = string.format("    %s%s", c.ov_cimguiname:gsub("^" .. name .. "_", ""), c.args) 
+            overloads[#overloads + 1] = string.format("    %s%s", c.ov_cimguiname:gsub("^" .. name .. "_", ""), c.args)
             wrap[#wrap + 1] = templates.class_overloaded_constructor:gsub("&%w+&", {
                 ["&shortconstructor&"] = c.ov_cimguiname:gsub("^" .. name .. "_", ""),
                 ["&constructor&"] = c.ov_cimguiname,
@@ -383,3 +388,5 @@ end
 local f = assert(io.open("src/enums.lua", "w"))
 f:write(table.concat(enums, "\n"))
 f:close()
+
+print("All done.")

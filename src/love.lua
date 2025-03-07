@@ -310,7 +310,7 @@ function L.RenderDrawLists()
                 love.graphics.setBlendMode("alpha", "alphamultiply")
 
                 local texture_id = C.ImDrawCmd_GetTexID(cmd)
-                if texture_id ~= nil then
+                if texture_id ~= 0 then
                     local obj = _common.textures[tostring(texture_id)]
                     local status, value = pcall(love_texture_test, obj)
                     assert(status and value, "Only LÖVE Texture objects can be passed as ImTextureID arguments.")

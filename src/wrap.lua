@@ -202,14 +202,15 @@ ImDrawList["AddBezierQuadratic"] = ImDrawList["AddBezierQuadratic"]  or function
     local out = C.ImDrawList_AddBezierQuadratic(i1, i2, i3, i4, i5, i6, i7)
     return out
 end
-ImDrawList["AddCallback"] = ImDrawList["AddCallback"]  or function(i1, i2, i3)
+ImDrawList["AddCallback"] = ImDrawList["AddCallback"]  or function(i1, i2, i3, i4)
     jit.off(true)
+    if i4 == nil then i4 = 0 end
     if not ffi.istype("ImDrawCallback", i2) then
         local str = tostring(i2)
         _common.callbacks[str] = i2
         i2 = ffi.cast("ImDrawCallback", str)
     end
-    local out = C.ImDrawList_AddCallback(i1, i2, i3)
+    local out = C.ImDrawList_AddCallback(i1, i2, i3, i4)
     return out
 end
 ImDrawList["AddCircle"] = ImDrawList["AddCircle"]  or function(i1, i2, i3, i4, i5, i6)
@@ -1636,6 +1637,16 @@ end
 M.ImVec4 = ImVec4
 ffi.metatype("ImVec4", ImVec4)
 
+M.ImGuiFreeType_GetBuilderForFreeType = M.ImGuiFreeType_GetBuilderForFreeType  or function()
+    jit.off(true)
+    local out = C.ImGuiFreeType_GetBuilderForFreeType()
+    return out
+end
+M.ImGuiFreeType_SetAllocatorFunctions = M.ImGuiFreeType_SetAllocatorFunctions  or function(i1, i2, i3)
+    jit.off(true)
+    local out = C.ImGuiFreeType_SetAllocatorFunctions(i1, i2, i3)
+    return out
+end
 M.AcceptDragDropPayload = M.AcceptDragDropPayload  or function(i1, i2)
     jit.off(true)
     if i2 == nil then i2 = 0 end
@@ -2825,6 +2836,11 @@ M.IsMouseReleased = M.IsMouseReleased  or function(i1)
     local out = C.igIsMouseReleased(i1)
     return out
 end
+M.IsMouseReleasedWithDelay = M.IsMouseReleasedWithDelay  or function(i1, i2)
+    jit.off(true)
+    local out = C.igIsMouseReleasedWithDelay(i1, i2)
+    return out
+end
 M.IsPopupOpen = M.IsPopupOpen  or function(i1, i2)
     jit.off(true)
     if i2 == nil then i2 = 0 end
@@ -3296,6 +3312,11 @@ end
 M.SetMouseCursor = M.SetMouseCursor  or function(i1)
     jit.off(true)
     local out = C.igSetMouseCursor(i1)
+    return out
+end
+M.SetNavCursorVisible = M.SetNavCursorVisible  or function(i1)
+    jit.off(true)
+    local out = C.igSetNavCursorVisible(i1)
     return out
 end
 M.SetNextFrameWantCaptureKeyboard = M.SetNextFrameWantCaptureKeyboard  or function(i1)

@@ -431,10 +431,10 @@ function Context:Draw(pass, tf, opts)
         pass:setBlendMode("alpha", "alphamultiply")
 
         local texture_id = C.ImDrawCmd_GetTexID(cmd)
-        if texture_id ~= nil then
+        if texture_id ~= 0 then
           local obj = _common.textures[tostring(texture_id)]
           local status, value = pcall(lovr_texture_test, obj)
-          assert(status and value, "Only LÖVE Texture objects can be passed as ImTextureID arguments.")
+          assert(status and value, "Only lovr Texture objects can be passed as ImTextureID arguments.")
           -- TODO fix, lovr texture & canvas are both Texture, need to setBlendMode?
           -- if obj:type() == "Texture" then
           --   pass:setBlendMode("alpha", "premultiplied")

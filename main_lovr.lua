@@ -1,7 +1,5 @@
 -- Make sure the shared library can be found through package.cpath before loading the module.
 -- For example, if you put it in the LÖVE save directory, you could do something like this:
-local lib_path = lovr.filesystem.getWorkingDirectory()..'\\cimgui\\build\\Debug'
-package.cpath = lib_path..'\\?.dll;'..package.cpath
 
 local ImGui = require "src" -- cimgui is the folder containing the Lua module (the "src" folder in the github repository)
 
