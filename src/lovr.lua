@@ -21,6 +21,7 @@ _common.textures = setmetatable({},{__mode="v"})
 _common.callbacks = setmetatable({},{__mode="v"})
 
 local DefaultVertex2DShader = [[
+  layout(location = 0) out vec2 UIPos;
   vec4 lovrmain() {
     vec2 uv = VertexPosition.xy / Resolution.xy;
     Color = vec4(gammaToLinear(VertexColor.rgb), VertexColor.a) * Material.color * PassColor;
