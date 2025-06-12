@@ -484,8 +484,7 @@ end
 function Context:MouseMoved(x, y)
   -- TODO Fix
   -- if love.window.hasMouseFocus() then
-  local dpi = lovr.system.getWindowDensity()
-  local adjustedX, adjustedY = x * dpi, y * dpi
+  local adjustedX, adjustedY = x * dpiscale, y * dpiscale
     self.io:AddMousePosEvent(adjustedX, adjustedY)
   -- end
 end
