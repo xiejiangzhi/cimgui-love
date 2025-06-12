@@ -97,9 +97,7 @@ end
 
 
 function lovr.mousemoved(x, y, ...)
-  local dpi = lovr.system.getWindowDensity()
-  local adjustedX, adjustedY = x * dpi, y * dpi
-  ui_2d:MouseMoved(adjustedX, adjustedY)
+  ui_2d:MouseMoved(x, y)
   if not ui_2d:GetWantCaptureMouse() then
       -- your code here
   end
