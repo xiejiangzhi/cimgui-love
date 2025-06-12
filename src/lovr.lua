@@ -10,6 +10,8 @@ local C = M.C
 local L = M.lovr
 local _common = M._common
 
+local dpiscale = lovr.system.getWindowDensity()
+
 local vertexformat = {
   { "VertexPosition", "vec2" },
   { "VertexUV", "vec2" },
@@ -201,7 +203,6 @@ function Context.new(vertex_shader, opts)
   -- self.platform_io.Platform_GetClipboardTextFn = cliboard_callback_get
   -- self.platform_io.Platform_SetClipboardTextFn = cliboard_callback_set
 
-  local dpiscale = lovr.system.getWindowDensity()
   self.io.DisplayFramebufferScale.x, self.io.DisplayFramebufferScale.y = dpiscale, dpiscale
   if opts.viewport then
     self.io.DisplaySize.x, self.io.DisplaySize.y = opts.viewport.x, opts.viewport.y
@@ -483,7 +484,9 @@ end
 function Context:MouseMoved(x, y)
   -- TODO Fix
   -- if love.window.hasMouseFocus() then
-    self.io:AddMousePosEvent(x, y)
+  local dpi = lovr.system.getWindowDensity()
+  local adjustedX, adjustedY = x * dpi, y * dpi
+    self.io:AddMousePosEvent(adjustedX, adjustedY)
   -- end
 end
 
