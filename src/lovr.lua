@@ -204,10 +204,13 @@ function Context.new(vertex_shader, opts)
   -- self.platform_io.Platform_SetClipboardTextFn = cliboard_callback_set
 
   self.io.DisplayFramebufferScale.x, self.io.DisplayFramebufferScale.y = dpiscale, dpiscale
+  self.io.FontGlobalScale = dpiscale
   if opts.viewport then
+    -- mabye include also dpi to viewport?
     self.io.DisplaySize.x, self.io.DisplaySize.y = opts.viewport.x, opts.viewport.y
   else
-    self.io.DisplaySize.x, self.io.DisplaySize.y = lovr.system.getWindowDimensions()
+    local windowWidth, windowHeight = lovr.system.getWindowDimensions()
+    self.io.DisplaySize.x, self.io.DisplaySize.y = windowWidth * dpiscale, windowHeight * dpiscale
   end
 
   if opts.ini_path == false then
