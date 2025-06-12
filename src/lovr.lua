@@ -206,7 +206,8 @@ function Context.new(vertex_shader, opts)
   if opts.viewport then
     self.io.DisplaySize.x, self.io.DisplaySize.y = opts.viewport.x, opts.viewport.y
   else
-    self.io.DisplaySize.x, self.io.DisplaySize.y = lovr.system.getWindowDimensions()
+    local windowWidth, windowHeight = lovr.system.getWindowDimensions()
+    self.io.DisplaySize.x, self.io.DisplaySize.y = windowWidth * dpiscale, windowHeight * dpiscale
   end
 
   if opts.ini_path == false then
