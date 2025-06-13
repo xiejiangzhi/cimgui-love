@@ -16,10 +16,10 @@ function lovr.load()
 
   ui_2d = ImGui.lovr.NewContext('2d', { font_texture_format = 'Alpha8' })
   ui_3d1 = ImGui.lovr.NewContext('3d', {
-    font_texture_format = 'RGBA32', ini_path = false, viewport = vec2(200, 200)
+    font_texture_format = 'RGBA32', ini_path = false, display_size = { 200, 200 }
   })
   ui_3d2 = ImGui.lovr.NewContext('3d', {
-    font_texture_format = 'Alpha8', ini_path = false, viewport = vec2(400, 300)
+    font_texture_format = 'Alpha8', ini_path = false, display_size = { 400, 300 }
   })
 end
 

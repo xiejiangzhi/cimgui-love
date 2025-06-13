@@ -28,11 +28,18 @@ local DefaultVertex2DShader = [[
   }
 ]]
 local DefaultVertex3DShader = [[
-  layout(location = 0) out vec2 UIPos;
+  Constants {
+    vec2 UIClipMin;
+    vec2 UIClipMax;
+  };
+
   vec4 lovrmain() {
     Color = vec4(gammaToLinear(VertexColor.rgb), VertexColor.a) * Material.color * PassColor;
     vec4 vp = vec4(VertexPosition.xy * vec2(0.01, -0.01), 0., 1.0);
-    UIPos = VertexPosition.xy;
+    ClipDistance[0] = VertexPosition.x - UIClipMin.x;
+    ClipDistance[1] = VertexPosition.y - UIClipMin.y;
+    ClipDistance[2] = UIClipMax.x - VertexPosition.x;
+    ClipDistance[3] = UIClipMax.y - VertexPosition.y;
     PositionWorld = vec3(WorldFromLocal * vp);
     Normal = NormalMatrix * vec3(0, 0, 1);
     return ViewProjection * Transform * vp;
@@ -72,7 +79,12 @@ function L.AddFontTTF(ttf_path, size, conf, out_font_atlas)
     end
 
     if conf.ranges then
-      ranges = ffi.new('ImWchar[?]', #conf.ranges, conf.ranges)
+      -- allow ImWchar
+      if type(conf.ranges) == 'cdata' then
+        ranges = conf.ranges
+      else
+        ranges = ffi.new('ImWchar[?]', #conf.ranges, conf.ranges)
+      end
     end
     if conf.monospaced then
       config.GlyphMinAdvanceX = size
@@ -106,6 +118,9 @@ end
 
 function L.AddSharedFontTTF(ttf_path, size, conf)
   local font = L.AddFontTTF(ttf_path, size, conf, L.SharedFontAtlas)
+  if font == nil then
+    error("Failed to load font "..tostring(ttf_path))
+  end
   L.SharedFontTexture = {}
   return font
 end
@@ -123,8 +138,8 @@ end
 vertex_shader: nil, 2d, 3d or vertex shader code
 opts.ini_path
 opts.font_atlas
-opts.viewport: { x = x, y = y }, display area size, clip content that out the area, default use lovr window size
 opts.font_texture_format, default is RGBA32
+opts.display_size { x, y }, default use lovr window size
 ]]
 function Context.new(vertex_shader, opts)
   local self = setmetatable({}, Context)
@@ -138,18 +153,7 @@ function Context.new(vertex_shader, opts)
 
   self.custom_shader = nil
   self.default_shader = lovr.graphics.newShader(self.vertex_shader, [[
-    Constants {
-      vec2 UIClipMin;
-      vec2 UIClipMax;
-    };
-    layout(location = 0) in vec2 UIPos;
-
     vec4 lovrmain() {
-      if (UIPos.x < UIClipMin.x || UIPos.y < UIClipMin.y
-        || UIPos.x > UIClipMax.x || UIPos.y > UIClipMax.y
-      ) {
-        discard;
-      }
       return DefaultColor;
     }
   ]], {
@@ -159,6 +163,7 @@ function Context.new(vertex_shader, opts)
   self.font_texture_format = opts.font_texture_format or "RGBA32"
   self.font_atlas = opts.font_atlas or L.SharedFontAtlas
   self.context = C.igCreateContext(self.font_atlas)
+  ffi.gc(self.context, C.igDestroyContext)
   self.activated = false
 
   self:Activate()
@@ -171,17 +176,7 @@ function Context.new(vertex_shader, opts)
 
   if self.font_texture_format == 'Alpha8' then
     self.font_shader = lovr.graphics.newShader(self.vertex_shader, [[
-      Constants {
-        vec2 UIClipMin;
-        vec2 UIClipMax;
-      };
-      layout(location = 0) in vec2 UIPos;
       vec4 lovrmain() {
-        if (UIPos.x < UIClipMin.x || UIPos.y < UIClipMin.y
-          || UIPos.x > UIClipMax.x || UIPos.y > UIClipMax.y
-        ) {
-          discard;
-        }
         float alpha = getPixel(ColorTexture, UV).r;
         return vec4(Color.rgb, Color.a*alpha);
       }
@@ -203,11 +198,13 @@ function Context.new(vertex_shader, opts)
 
   local dpiscale = lovr.system.getWindowDensity()
   self.io.DisplayFramebufferScale.x, self.io.DisplayFramebufferScale.y = dpiscale, dpiscale
-  if opts.viewport then
-    self.io.DisplaySize.x, self.io.DisplaySize.y = opts.viewport.x, opts.viewport.y
+  self.io.FontGlobalScale = opts.font_global_scale or 1
+  if opts.display_size then
+    self.w, self.h = unpack(opts.display_size)
   else
-    self.io.DisplaySize.x, self.io.DisplaySize.y = lovr.system.getWindowDimensions()
+    self.w, self.h = lovr.system.getWindowDimensions()
   end
+  self.io.DisplaySize.x, self.io.DisplaySize.y = self.w, self.h
 
   if opts.ini_path == false then
     self.io.IniFilename = nil
@@ -336,6 +333,7 @@ local DefaultDrawOpts = {}
 -- opts.viewport_debug
 function Context:Draw(pass, tf, opts)
   if not self.draw_data then return end
+  opts = opts or DefaultDrawOpts
 
   pass:push("state")
   pass:push('transform')
@@ -343,7 +341,8 @@ function Context:Draw(pass, tf, opts)
   pass:setFaceCull('none')
   pass:setViewCull(false)
   pass:setDepthWrite(false)
-  opts = opts or DefaultDrawOpts
+  pass:setMaterial()
+  pass:setBlendMode('alpha', 'alphamultiply')
 
   if tf then
     local vsize = self.io.DisplaySize
@@ -365,7 +364,6 @@ function Context:Draw(pass, tf, opts)
       pass:plane(tf * mat4(vec3(w * 0.5, -h * 0.5, 0), vec3(w, h, 1)), 'line')
     end
     pass:transform(tf)
-
   else
     pass:setDepthTest('none')
   end
@@ -434,7 +432,7 @@ function Context:Draw(pass, tf, opts)
         if texture_id ~= 0 then
           local obj = _common.textures[tostring(texture_id)]
           local status, value = pcall(lovr_texture_test, obj)
-          assert(status and value, "Only lovr Texture objects can be passed as ImTextureID arguments.")
+          assert(status and value, "Only Lovr Texture objects can be passed as ImTextureID arguments.")
           -- TODO fix, lovr texture & canvas are both Texture, need to setBlendMode?
           -- if obj:type() == "Texture" then
           --   pass:setBlendMode("alpha", "premultiplied")
@@ -458,12 +456,12 @@ function Context:Draw(pass, tf, opts)
     end
   end
 
-  pass:pop('transform')
+  pass:setScissor()
+  pass:pop("transform")
   pass:pop('state')
 end
 
 function Context:Destroy()
-  C.igDestroyContext(self.context)
   self.context = nil
   self.io = nil
   self.platform_io = nil
@@ -629,3 +627,4 @@ for name in pairs(flags) do
     return bit.bor(unpack(t))
   end
 end
+
