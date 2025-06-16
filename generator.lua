@@ -174,7 +174,7 @@ templates.function_begin =
     jit.off(true)]]
 
 templates.texture_id =
-[[    local ptr = ffi.cast("void *", &arg&)
+[[    local ptr = ffi.cast("uint64_t", &arg&)
     _common.textures[tostring(ptr)] = &arg&
     &arg& = ptr]]
 

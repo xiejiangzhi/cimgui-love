@@ -261,7 +261,7 @@ ImDrawList["AddImage"] = ImDrawList["AddImage"]  or function(i1, i2, i3, i4, i5,
     if i5 == nil then i5 = M.ImVec2_Float(0, 0) end
     if i6 == nil then i6 = M.ImVec2_Float(1, 1) end
     if i7 == nil then i7 = 4294967295 end
-    local ptr = ffi.cast("void *", i2)
+    local ptr = ffi.cast("uint64_t", i2)
     _common.textures[tostring(ptr)] = i2
     i2 = ptr
     local out = C.ImDrawList_AddImage(i1, i2, i3, i4, i5, i6, i7)
@@ -274,7 +274,7 @@ ImDrawList["AddImageQuad"] = ImDrawList["AddImageQuad"]  or function(i1, i2, i3,
     if i9 == nil then i9 = M.ImVec2_Float(1, 1) end
     if i10 == nil then i10 = M.ImVec2_Float(0, 1) end
     if i11 == nil then i11 = 4294967295 end
-    local ptr = ffi.cast("void *", i2)
+    local ptr = ffi.cast("uint64_t", i2)
     _common.textures[tostring(ptr)] = i2
     i2 = ptr
     local out = C.ImDrawList_AddImageQuad(i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11)
@@ -283,7 +283,7 @@ end
 ImDrawList["AddImageRounded"] = ImDrawList["AddImageRounded"]  or function(i1, i2, i3, i4, i5, i6, i7, i8, i9)
     jit.off(true)
     if i9 == nil then i9 = 0 end
-    local ptr = ffi.cast("void *", i2)
+    local ptr = ffi.cast("uint64_t", i2)
     _common.textures[tostring(ptr)] = i2
     i2 = ptr
     local out = C.ImDrawList_AddImageRounded(i1, i2, i3, i4, i5, i6, i7, i8, i9)
@@ -527,7 +527,7 @@ ImDrawList["PushClipRectFullScreen"] = ImDrawList["PushClipRectFullScreen"]  or 
 end
 ImDrawList["PushTextureID"] = ImDrawList["PushTextureID"]  or function(i1, i2)
     jit.off(true)
-    local ptr = ffi.cast("void *", i2)
+    local ptr = ffi.cast("uint64_t", i2)
     _common.textures[tostring(ptr)] = i2
     i2 = ptr
     local out = C.ImDrawList_PushTextureID(i1, i2)
@@ -580,7 +580,7 @@ ImDrawList["_ResetForNewFrame"] = ImDrawList["_ResetForNewFrame"]  or function(i
 end
 ImDrawList["_SetTextureID"] = ImDrawList["_SetTextureID"]  or function(i1, i2)
     jit.off(true)
-    local ptr = ffi.cast("void *", i2)
+    local ptr = ffi.cast("uint64_t", i2)
     _common.textures[tostring(ptr)] = i2
     i2 = ptr
     local out = C.ImDrawList__SetTextureID(i1, i2)
@@ -891,7 +891,7 @@ ImFontAtlas["IsBuilt"] = ImFontAtlas["IsBuilt"]  or function(i1)
 end
 ImFontAtlas["SetTexID"] = ImFontAtlas["SetTexID"]  or function(i1, i2)
     jit.off(true)
-    local ptr = ffi.cast("void *", i2)
+    local ptr = ffi.cast("uint64_t", i2)
     _common.textures[tostring(ptr)] = i2
     i2 = ptr
     local out = C.ImFontAtlas_SetTexID(i1, i2)
@@ -2574,7 +2574,7 @@ M.Image = M.Image  or function(i1, i2, i3, i4, i5, i6)
     if i4 == nil then i4 = M.ImVec2_Float(1, 1) end
     if i5 == nil then i5 = M.ImVec4_Float(1, 1, 1, 1) end
     if i6 == nil then i6 = M.ImVec4_Float(0, 0, 0, 0) end
-    local ptr = ffi.cast("void *", i1)
+    local ptr = ffi.cast("uint64_t", i1)
     _common.textures[tostring(ptr)] = i1
     i1 = ptr
     local out = C.igImage(i1, i2, i3, i4, i5, i6)
@@ -2586,7 +2586,7 @@ M.ImageButton = M.ImageButton  or function(i1, i2, i3, i4, i5, i6, i7)
     if i5 == nil then i5 = M.ImVec2_Float(1, 1) end
     if i6 == nil then i6 = M.ImVec4_Float(0, 0, 0, 0) end
     if i7 == nil then i7 = M.ImVec4_Float(1, 1, 1, 1) end
-    local ptr = ffi.cast("void *", i2)
+    local ptr = ffi.cast("uint64_t", i2)
     _common.textures[tostring(ptr)] = i2
     i2 = ptr
     local out = C.igImageButton(i1, i2, i3, i4, i5, i6, i7)
