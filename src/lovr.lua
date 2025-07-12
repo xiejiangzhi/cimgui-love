@@ -132,10 +132,11 @@ function Context.new(vertex_shader, opts)
     flags = ShaderFlags,
   })
 
+  local prev_ctx = C.igGetCurrentContext()
+
   self.context = C.igCreateContext(nil)
   ffi.gc(self.context, C.igDestroyContext)
   self.activated = false
-
   self:Activate()
   self.io = C.igGetIO()
   self.platform_io = C.igGetPlatformIO()
@@ -201,6 +202,11 @@ function Context.new(vertex_shader, opts)
   self.mesh_idata = nil
   self.max_vertcount = 0
   self.max_vidxcount = 0
+
+  if prev_ctx ~= nil then
+    -- must restore ctx to avoid error when create context inside other context
+    C.igSetCurrentContext(prev_ctx)
+  end
 
   return self
 end
@@ -666,3 +672,4 @@ for name in pairs(flags) do
     return bit.bor(unpack(t))
   end
 end
+
