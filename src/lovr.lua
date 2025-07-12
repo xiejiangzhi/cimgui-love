@@ -53,6 +53,10 @@ local ShaderFlags = {
   roughnessTexture = false,
   ambientOcclusion = false,
 }
+local TexSampler = lovr.graphics.newSampler({
+  filter = 'linear',
+  wrap = 'border',
+})
 
 local TexturesList = setmetatable({}, {__mode = "v"})
 local TexturesMap = setmetatable({}, {__mode = "k"})
@@ -110,7 +114,7 @@ opts.default_font: string, ttf_path
 opts.default_font: nil, add default font
 opts.default_font: false, don't add default font.
 opts.display_size { x, y }, default use lovr window size
-opts.impl_name: backend name
+opts.name: backend name
 ]]
 function Context.new(vertex_shader, opts)
   local self = setmetatable({}, Context)
@@ -185,9 +189,9 @@ function Context.new(vertex_shader, opts)
   end
 
   -- save name to avoid gc string
-  self.impl_name = opts.impl_name or ("cimgui-lovr#"..string.format("%p", self))
-  self.io.BackendPlatformName = self.impl_name
-  self.io.BackendRendererName = self.impl_name
+  self.name = opts.name or ("cimgui-lovr#"..string.format("%p", self))
+  self.io.BackendPlatformName = self.name
+  self.io.BackendRendererName = self.name
 
   self.io.BackendFlags = bit.bor(
     -- C.ImGuiBackendFlags_HasMouseCursors,
@@ -226,26 +230,28 @@ end
 -- return ImFont*
 function Context:AddFontTTF(ttf_path, size, conf, name)
   name = name or ttf_path
-  if self.fonts[name] then
-    return
+  local font = self.fonts[name]
+  if font then
+    return font
   end
 
-  local config = M.ImFontConfig()
+  local font_conf
   size = size or 16
 
   if conf then
+     font_conf = M.ImFontConfig()
     if conf.args then
       for k, v in pairs(conf.args) do
-        config[k] = v
+        font_conf[k] = v
       end
     end
 
     if conf.monospaced then
-      config.GlyphMinAdvanceX = size
+      font_conf.GlyphMinAdvanceX = size
     end
   end
 
-  local font = self.io.Fonts:AddFontFromFileTTF(ttf_path, size, config, nil)
+  font = self.io.Fonts:AddFontFromFileTTF(ttf_path, size, font_conf, nil)
   self.fonts[name] = font
   return font
 end
@@ -317,7 +323,9 @@ function Context:_process_draw_texture(draw_data)
 
         local imgdata = lovr.data.newImage(tex_info.Width, tex_info.Height, "rgba8")
         ffi.copy(imgdata:getPointer(), tex_info:GetPixels(), tex_info:GetSizeInBytes())
-        local tex = lovr.graphics.newTexture(imgdata, { usage = { 'transfer', 'sample' } })
+        local tex = lovr.graphics.newTexture(imgdata, {
+          usage = { 'transfer', 'sample' }, mipmaps = false, samples = 1
+        })
         local id = L.AddTexture(tex)
         tex_info:SetTexID(id)
         tex_info:SetStatus(C.ImTextureStatus_OK)
@@ -373,6 +381,7 @@ function Context:Draw(pass, tf, opts)
   pass:setDepthWrite(false)
   pass:setMaterial()
   pass:setBlendMode('alpha', 'alphamultiply')
+  pass:setSampler(TexSampler) -- TODO tex:setSampler(TexSampler)
 
   if tf then
     local vsize = self.io.DisplaySize
@@ -456,7 +465,7 @@ function Context:Draw(pass, tf, opts)
         local clipW = cmd.ClipRect.z - clipX
         local clipH = cmd.ClipRect.w - clipY
 
-        pass:setBlendMode("alpha", "alphamultiply")
+        -- pass:setBlendMode("alpha", "alphamultiply")
 
         local tex_id = tonumber(C.ImDrawCmd_GetTexID(cmd))
         local tex = TexturesList[tex_id]
