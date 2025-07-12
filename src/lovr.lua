@@ -53,10 +53,6 @@ local ShaderFlags = {
   roughnessTexture = false,
   ambientOcclusion = false,
 }
-local TexSampler = lovr.graphics.newSampler({
-  filter = 'linear',
-  wrap = 'border',
-})
 
 local TexturesList = setmetatable({}, {__mode = "v"})
 local TexturesMap = setmetatable({}, {__mode = "k"})
@@ -115,6 +111,7 @@ opts.default_font: nil, add default font
 opts.default_font: false, don't add default font.
 opts.display_size { x, y }, default use lovr window size
 opts.name: backend name
+opts.font_tex_format: 'alpha8' or 'rgba8'
 ]]
 function Context.new(vertex_shader, opts)
   local self = setmetatable({}, Context)
@@ -381,7 +378,7 @@ function Context:Draw(pass, tf, opts)
   pass:setDepthWrite(false)
   pass:setMaterial()
   pass:setBlendMode('alpha', 'alphamultiply')
-  pass:setSampler(TexSampler) -- TODO tex:setSampler(TexSampler)
+  pass:setSampler('linear')
 
   if tf then
     local vsize = self.io.DisplaySize
@@ -569,8 +566,6 @@ end
 function Context:TextInput(text)
   C.ImGuiIO_AddInputCharactersUTF8(self.io, text)
 end
-
-
 
 -- function Context:JoystickAdded(joystick)
 --   if not joystick:isGamepad() then return end
