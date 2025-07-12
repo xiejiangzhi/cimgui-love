@@ -147,30 +147,17 @@ local lovekeymap = {
 }
 _common.lovekeymap = lovekeymap
 
-local textureObject, textureShader
 local strings = {}
 
-_common.textures = setmetatable({},{__mode="v"})
 _common.callbacks = setmetatable({},{__mode="v"})
 
 local cliboard_callback_get, cliboard_callback_set
 local io, platform_io
 
-local Alpha8_shader
-
-function L.Init(format)
-    Alpha8_shader = love.graphics.newShader [[
-        vec4 effect(vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords) {
-            float alpha = Texel(tex, texture_coords).r;
-            return vec4(color.rgb, color.a*alpha);
-        }
-    ]]
-
-    format = format or "RGBA32"
+function L.Init()
     C.igCreateContext(nil)
     io = C.igGetIO()
     platform_io = C.igGetPlatformIO()
-    L.BuildFontAtlas(format)
 
     cliboard_callback_get = ffi.cast("const char* (*)(void*)", function(userdata)
         return love.system.getClipboardText()
@@ -185,15 +172,19 @@ function L.Init(format)
     local dpiscale = love.window.getDPIScale()
     io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y = dpiscale, dpiscale
 
-    -- love.filesystem.createDirectory("/")
-    -- strings.ini_filename = love.filesystem.getSaveDirectory() .. "/imgui.ini"
-    -- io.IniFilename = strings.ini_filename
+    love.filesystem.createDirectory("/")
+    strings.ini_filename = love.filesystem.getSaveDirectory() .. "/imgui.ini"
+    io.IniFilename = strings.ini_filename
 
     strings.impl_name = "cimgui-love"
     io.BackendPlatformName = strings.impl_name
     io.BackendRendererName = strings.impl_name
 
-    io.BackendFlags = bit.bor(C.ImGuiBackendFlags_HasMouseCursors, C.ImGuiBackendFlags_HasSetMousePos)
+    io.BackendFlags = bit.bor(
+      C.ImGuiBackendFlags_HasMouseCursors,
+      -- C.ImGuiBackendFlags_HasSetMousePos,
+      C.ImGuiBackendFlags_RendererHasTextures
+    )
 end
 
 local custom_shader
@@ -202,37 +193,13 @@ function L.SetShader(shader)
     custom_shader = shader
 end
 
-function L.BuildFontAtlas(format)
-    format = format or "RGBA32"
-    local pixels, width, height = ffi.new("unsigned char*[1]"), ffi.new("int[1]"), ffi.new("int[1]")
-    local imgdata
-
-    if format == "RGBA32" then
-        C.ImFontAtlas_GetTexDataAsRGBA32(io.Fonts, pixels, width, height, nil)
-        imgdata = love.image.newImageData(width[0], height[0], "rgba8", ffi.string(pixels[0], width[0]*height[0]*4))
-        textureShader = nil
-    elseif format == "Alpha8" then
-        C.ImFontAtlas_GetTexDataAsAlpha8(io.Fonts, pixels, width, height, nil)
-        imgdata = love.image.newImageData(width[0], height[0], "r8", ffi.string(pixels[0], width[0]*height[0]))
-        textureShader = Alpha8_shader
-    else
-        error([[Format should be either "RGBA32" or "Alpha8".]], 2)
-    end
-
-    textureObject = love.graphics.newImage(imgdata)
-end
-
 function L.Update(dt)
     io.DisplaySize.x, io.DisplaySize.y = love.graphics.getDimensions()
     io.DeltaTime = dt
 
-    if io.WantSetMousePos then
-        love.mouse.setPosition(io.MousePos.x, io.MousePos.y)
-    end
-end
-
-local function love_texture_test(t)
-    return t:typeOf("Texture")
+    -- if io.WantSetMousePos then
+    --     love.mouse.setPosition(io.MousePos.x, io.MousePos.y)
+    -- end
 end
 
 local cursors = {
@@ -247,8 +214,28 @@ local cursors = {
     [C.ImGuiMouseCursor_NotAllowed] = love.mouse.getSystemCursor("no"),
 }
 
-local mesh, meshdata
+local mesh, meshdata, idx_buffer
 local max_vertexcount = -math.huge
+local max_indexcount = -math.huge
+
+local textures = setmetatable({}, {__mode = "v"})
+local external_textures = setmetatable({}, {__mode = "k"})
+local internal_textures_set = {}
+
+function L.TextureRef(texture)
+    assert(texture, "Argument should be a LÖVE texture")
+    local id = external_textures[texture]
+    if not id then
+        id = #textures + 1
+        textures[id] = texture
+        external_textures[texture] = id
+    end
+    local ref = ffi.new("ImTextureRef")
+    ref._TexData = nil
+    ref._TexID = id
+    return ref
+end
+_common.TextureRef = L.TextureRef
 
 function L.RenderDrawLists()
     -- Avoid rendering when minimized
@@ -258,6 +245,42 @@ function L.RenderDrawLists()
 
     _common.RunShortcuts()
     local data = C.igGetDrawData()
+
+    -- process textures
+    if (data.Textures) then
+        for i = 0, data.Textures.Size - 1 do
+            local tex = data.Textures.Data[i]
+            local status = tex.Status
+            if status ~= C.ImTextureStatus_OK then
+                if status == C.ImTextureStatus_WantCreate then
+                    assert(tex.Format == C.ImTextureFormat_RGBA32, "Only the RGBA32 texture format is supported.")
+                    local imgdata = love.image.newImageData(tex.Width, tex.Height)
+                    ffi.copy(imgdata:getFFIPointer(), tex.Pixels, tex:GetSizeInBytes());
+                    local img = love.graphics.newImage(imgdata)
+                    local id = #textures + 1
+                    textures[id] = img
+                    internal_textures_set[img] = true
+                    tex:SetTexID(id)
+                    tex:SetStatus(C.ImTextureStatus_OK)
+                elseif status == C.ImTextureStatus_WantUpdates then
+                    local id = tonumber(tex.TexID)
+                    local img = textures[id]
+                    local imgdata = love.image.newImageData(tex.Width, tex.Height)
+                    ffi.copy(imgdata:getFFIPointer(), tex.Pixels, tex:GetSizeInBytes());
+                    img:replacePixels(imgdata)
+                    tex:SetStatus(C.ImTextureStatus_OK)
+                elseif status == C.ImTextureStatus_WantDestroy and tex.UnusedFrames > 0 then
+                    local id = tonumber(tex.TexID)
+                    local img = textures[id]
+                    img:release()
+                    textures[id] = nil
+                    internal_textures_set[img] = nil
+                    tex:SetTexID(0)
+                    tex:SetStatus(C.ImTextureStatus_Destroyed)
+                end
+            end
+        end
+    end
 
     -- change mouse cursor
     if bit.band(io.ConfigFlags, C.ImGuiConfigFlags_NoMouseCursorChange) ~= C.ImGuiConfigFlags_NoMouseCursorChange then
@@ -274,7 +297,7 @@ function L.RenderDrawLists()
         local cmd_list = data.CmdLists.Data[i]
 
         local vertexcount = cmd_list.VtxBuffer.Size
-        local data_size = vertexcount*ffi.sizeof("ImDrawVert")
+        local data_size = vertexcount * ffi.sizeof("ImDrawVert")
         if vertexcount > max_vertexcount then
             max_vertexcount = vertexcount
             if mesh then mesh:release() end
@@ -286,16 +309,18 @@ function L.RenderDrawLists()
             ffi.copy(meshdata:getFFIPointer(), cmd_list.VtxBuffer.Data, data_size)
             mesh:setVertices(meshdata)
         end
-        -- for vi = 1, 3 do
-        --   local p = cmd_list.VtxBuffer.Data[vi - 1].pos
-        --   print(i, p.x, p.y)
-        -- end
 
-        local IdxBuffer = {}
-        for k = 1, cmd_list.IdxBuffer.Size do
-            IdxBuffer[k] = cmd_list.IdxBuffer.Data[k - 1] + 1
+        local indices_data_size = cmd_list.IdxBuffer.Size * ffi.sizeof("ImDrawIdx")
+
+        if cmd_list.IdxBuffer.Size > max_indexcount then
+            max_indexcount = cmd_list.IdxBuffer.Size
+            if idx_buffer then idx_buffer:release() end
+            idx_buffer = love.data.newByteData(math.max(indices_data_size, ffi.sizeof("ImDrawIdx")))
         end
-        mesh:setVertexMap(IdxBuffer)
+
+        ffi.copy(idx_buffer:getFFIPointer(), cmd_list.IdxBuffer.Data, indices_data_size)
+
+        mesh:setVertexMap(idx_buffer, "uint16")
 
         for k = 0, cmd_list.CmdBuffer.Size - 1 do
             local cmd = cmd_list.CmdBuffer.Data[k]
@@ -309,19 +334,15 @@ function L.RenderDrawLists()
 
                 love.graphics.setBlendMode("alpha", "alphamultiply")
 
-                local texture_id = C.ImDrawCmd_GetTexID(cmd)
-                if texture_id ~= 0 then
-                    local obj = _common.textures[tostring(texture_id)]
-                    local status, value = pcall(love_texture_test, obj)
-                    assert(status and value, "Only LÖVE Texture objects can be passed as ImTextureID arguments.")
-                    if obj:typeOf("Canvas") then
+                local texture_id = tonumber(C.ImDrawCmd_GetTexID(cmd))
+                local texture = textures[texture_id]
+                mesh:setTexture(texture)
+                if texture then
+                    if texture:typeOf("Canvas") then
                         love.graphics.setBlendMode("alpha", "premultiplied")
                     end
-                    love.graphics.setShader()
-                    mesh:setTexture(obj)
-                else
-                    love.graphics.setShader(custom_shader or textureShader)
-                    mesh:setTexture(textureObject)
+                    love.graphics.setShader(custom_shader)
+                    mesh:setTexture(texture)
                 end
 
                 love.graphics.setScissor(clipX, clipY, clipW, clipH)
@@ -377,6 +398,10 @@ function L.KeyReleased(key)
     end
 end
 
+function L.Focus(focused)
+    io:AddFocusEvent(focused)
+end
+
 function L.TextInput(text)
     C.ImGuiIO_AddInputCharactersUTF8(io, text)
 end
@@ -387,6 +412,10 @@ function L.Shutdown()
     cliboard_callback_get:free()
     cliboard_callback_set:free()
     cliboard_callback_get, cliboard_callback_set = nil
+
+    textures = setmetatable({}, {__mode = "v"})
+    external_textures = setmetatable({}, {__mode = "k"})
+    internal_textures_set = {}
 end
 
 function L.JoystickAdded(joystick)
@@ -500,5 +529,4 @@ function L.RevertToOldNames()
         M[k] = v
     end
 end
-
 

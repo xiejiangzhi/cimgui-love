@@ -173,11 +173,10 @@ templates.function_begin =
 [[M.&shortfunction& = M.&shortfunction&  or function(&wrapargs&)
     jit.off(true)]]
 
-templates.texture_id =
-[[    local ptr = ffi.cast("uint64_t", &arg&)
-    _common.textures[tostring(ptr)] = &arg&
-    &arg& = ptr]]
-
+templates.texture_ref =
+[[if type(&arg&) ~= 'cdata' then
+  &arg& = _common.TextureRef(&arg&)
+end]]
 templates.drawcallback =
 [[    if not ffi.istype("ImDrawCallback", &arg&) then
         local str = tostring(&arg&)
@@ -262,8 +261,8 @@ for _, name in ipairs(sorted_entries(classes)) do
         })
         add_defaults(m, wrap)
         for i, arg in ipairs(m.in_argsT) do
-            if arg.type == "ImTextureID" then
-                wrap[#wrap + 1] = templates.texture_id:gsub("&arg&", string.format("i%d", i))
+            if arg.type == 'ImTextureRef' then
+                wrap[#wrap + 1] = templates.texture_ref:gsub("&arg&", string.format("i%d", i))
             elseif arg.type == "ImDrawCallback" then
                 wrap[#wrap + 1] = templates.drawcallback:gsub("&arg&", string.format("i%d", i))
             end
@@ -327,10 +326,10 @@ for _, f in ipairs(functions) do
     })
     add_defaults(f, wrap)
     for i, arg in ipairs(f.in_argsT) do
-        if arg.type == "ImTextureID" then
-            wrap[#wrap + 1] = templates.texture_id:gsub("&arg&", string.format("i%d", i))
+        if arg.type == "ImTextureRef" then
+            wrap[#wrap + 1] = templates.texture_ref:gsub("&arg&", string.format("i%d", i))
         elseif arg.type == "ImDrawCallback" then
-                wrap[#wrap + 1] = templates.drawcallback:gsub("&arg&", string.format("i%d", i))
+            wrap[#wrap + 1] = templates.drawcallback:gsub("&arg&", string.format("i%d", i))
         end
     end
     for i, arg in ipairs(f.out_argsT) do

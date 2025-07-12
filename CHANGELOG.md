@@ -3,7 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## Unreleased
+## [1.92.1] (2025-7-12)
+
+### Changed
+- Remove Shared Font. 1.92 does not support shared fonts for now, different contexts use their own font atlas.
 
 ## [1.91.1-1] (2024-09-12)
 ### Changed

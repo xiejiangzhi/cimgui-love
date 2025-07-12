@@ -17,7 +17,6 @@ local vertexformat = {
 }
 
 local lovrkeymap = _common.lovrkeymap
-_common.textures = setmetatable({},{__mode="v"})
 _common.callbacks = setmetatable({},{__mode="v"})
 
 local DefaultVertex2DShader = [[
@@ -55,81 +54,50 @@ local ShaderFlags = {
   ambientOcclusion = false,
 }
 
+local TexturesList = setmetatable({}, {__mode = "v"})
+local TexturesMap = setmetatable({}, {__mode = "k"})
+
 local Context = {}
 Context.__index = Context
-
-L.SharedFontAtlas = M.ImFontAtlas()
-L.SharedFontTexture = {} -- { [format] = texture }
 
 function L.NewContext(...)
   return Context.new(...)
 end
 
--- return ImFont*
-function L.AddFontTTF(ttf_path, size, conf, out_font_atlas)
-  local config = M.ImFontConfig()
-  size = size or 16
-  local ranges
-
-  if conf then
-    if conf.args then
-      for k, v in pairs(conf.args) do
-        config[k] = v
-      end
-    end
-
-    if conf.ranges then
-      -- allow ImWchar
-      if type(conf.ranges) == 'cdata' then
-        ranges = conf.ranges
-      else
-        ranges = ffi.new('ImWchar[?]', #conf.ranges, conf.ranges)
-      end
-    end
-    if conf.monospaced then
-      config.GlyphMinAdvanceX = size
-    end
+-- prevent_gc: default is false
+function L.AddTexture(tex)
+  local id = TexturesMap[tex]
+  if not id then
+    id = #TexturesList + 1
+    TexturesList[id] = tex
+    TexturesMap[tex] = id
   end
-
-  return out_font_atlas:AddFontFromFileTTF(ttf_path, size, config, ranges)
+  return id
 end
 
--- return texture
-function L.BuildFontAtlasTexture(font_atlas, texture_format)
-  assert(font_atlas, "font_atlas cannot be nil")
-  texture_format = texture_format or "RGBA32"
-  local pixels, width, height = ffi.new("unsigned char*[1]"), ffi.new("int[1]"), ffi.new("int[1]")
-  local imgdata
-
-  if texture_format == "RGBA32" then
-    C.ImFontAtlas_GetTexDataAsRGBA32(font_atlas, pixels, width, height, nil)
-    local datablob = lovr.data.newBlob(ffi.string(pixels[0], width[0]*height[0]*4))
-    imgdata = lovr.data.newImage(width[0], height[0], "rgba8", datablob)
-  elseif texture_format == "Alpha8" then
-    C.ImFontAtlas_GetTexDataAsAlpha8(font_atlas, pixels, width, height, nil)
-    local datablob = lovr.data.newBlob(ffi.string(pixels[0], width[0]*height[0]))
-    imgdata = lovr.data.newImage(width[0], height[0], "r8", datablob)
+function L.RemoveTexture(tex_or_id)
+  local id, tex
+  if type(tex_or_id) == 'number' then
+    id = tex_or_id
+    tex = TexturesList[id]
   else
-    error([[Format should be either "RGBA32" or "Alpha8".]], 2)
+    id = TexturesMap[tex_or_id]
+    tex = tex_or_id
   end
-
-  return lovr.graphics.newTexture(imgdata)
+  if id then
+    TexturesList[id] = nil
+    TexturesMap[tex] = nil
+  end
 end
 
-function L.AddSharedFontTTF(ttf_path, size, conf)
-  local font = L.AddFontTTF(ttf_path, size, conf, L.SharedFontAtlas)
-  if font == nil then
-    error("Failed to load font "..tostring(ttf_path))
+local ImTextureRef = ffi.typeof("ImTextureRef")
+function _common.TextureRef(texture)
+  assert(texture, "Argument should be a Lovr texture")
+  local id = TexturesMap[texture]
+  if not id then
+    id = L.AddTexture(texture)
   end
-  L.SharedFontTexture = {}
-  return font
-end
-
-function L.FetchSharedFontTexture(format)
-  if not L.SharedFontTexture[format] then
-    L.SharedFontTexture[format] = L.BuildFontAtlasTexture(L.SharedFontAtlas, format)
-  end
-  return L.SharedFontTexture[format]
+  return ImTextureRef(nil, id)
 end
 
 -------------------------
@@ -137,9 +105,12 @@ end
 --[[
 vertex_shader: nil, 2d, 3d or vertex shader code
 opts.ini_path
-opts.font_atlas
-opts.font_texture_format, default is RGBA32
+opts.default_font: { ttf_path, size, conf }, args of AddFontTTF
+opts.default_font: string, ttf_path
+opts.default_font: nil, add default font
+opts.default_font: false, don't add default font.
 opts.display_size { x, y }, default use lovr window size
+opts.impl_name: backend name
 ]]
 function Context.new(vertex_shader, opts)
   local self = setmetatable({}, Context)
@@ -160,29 +131,27 @@ function Context.new(vertex_shader, opts)
     flags = ShaderFlags,
   })
 
-  self.font_texture_format = opts.font_texture_format or "RGBA32"
-  self.font_atlas = opts.font_atlas or L.SharedFontAtlas
-  self.context = C.igCreateContext(self.font_atlas)
+  self.context = C.igCreateContext(nil)
   ffi.gc(self.context, C.igDestroyContext)
   self.activated = false
 
   self:Activate()
   self.io = C.igGetIO()
   self.platform_io = C.igGetPlatformIO()
+  self.fonts = {} -- name_or_path -> ImFont
+  self.internal_textures = {}
 
-  -- TODO skip build for shared font
-  self.font_texture = nil
-  self:BuildFontAtlas()
-
-  if self.font_texture_format == 'Alpha8' then
-    self.font_shader = lovr.graphics.newShader(self.vertex_shader, [[
-      vec4 lovrmain() {
-        float alpha = getPixel(ColorTexture, UV).r;
-        return vec4(Color.rgb, Color.a*alpha);
-      }
-    ]], { flags = ShaderFlags })
-  else
-    self.font_shader = nil
+  if opts.default_font then
+    local desc = opts.default_font
+    if type(desc) == 'table' then
+      self.fonts.default = self:AddFontTTF(desc[1], desc[2], desc[3])
+    elseif type(desc) == 'string' then
+      self.fonts.default = self:AddFontTTF(desc)
+    else
+      error("Invalid font desc")
+    end
+  elseif opts.default_font == nil then
+    self.fonts.default = self.io.Fonts:AddFontDefault()
   end
 
   -- TODO Fix
@@ -198,7 +167,7 @@ function Context.new(vertex_shader, opts)
 
   local dpiscale = lovr.system.getWindowDensity()
   self.io.DisplayFramebufferScale.x, self.io.DisplayFramebufferScale.y = dpiscale, dpiscale
-  self.io.FontGlobalScale = opts.font_global_scale or 1
+
   if opts.display_size then
     self.w, self.h = unpack(opts.display_size)
   else
@@ -221,7 +190,9 @@ function Context.new(vertex_shader, opts)
   self.io.BackendRendererName = self.impl_name
 
   self.io.BackendFlags = bit.bor(
-    C.ImGuiBackendFlags_HasMouseCursors, C.ImGuiBackendFlags_HasSetMousePos
+    -- C.ImGuiBackendFlags_HasMouseCursors,
+    -- C.ImGuiBackendFlags_HasSetMousePos,
+    C.ImGuiBackendFlags_RendererHasTextures
   )
 
   self.mesh = nil
@@ -244,22 +215,43 @@ function Context:Activate()
   ActivatedContext = self
 end
 
+function L.GetCurrentContext()
+  return ActivatedContext
+end
+
 function Context:SetShader(shader)
   self.custom_shader = shader
 end
 
-function Context:BuildFontAtlas()
-  if self.font_atlas == L.SharedFontAtlas then
-    if not L.SharedFontTexture[self.font_texture_format] then
-      L.SharedFontTexture[self.font_texture_format] = L.BuildFontAtlasTexture(
-        L.SharedFontAtlas, self.font_texture_format
-      )
-    end
-    self.use_shared_font_texture = true
-    self.font_texture = nil
-  else
-    self.font_texture = L.BuildFontAtlasTexture(self.io.Fonts, self.font_texture_format)
+-- return ImFont*
+function Context:AddFontTTF(ttf_path, size, conf, name)
+  name = name or ttf_path
+  if self.fonts[name] then
+    return
   end
+
+  local config = M.ImFontConfig()
+  size = size or 16
+
+  if conf then
+    if conf.args then
+      for k, v in pairs(conf.args) do
+        config[k] = v
+      end
+    end
+
+    if conf.monospaced then
+      config.GlyphMinAdvanceX = size
+    end
+  end
+
+  local font = self.io.Fonts:AddFontFromFileTTF(ttf_path, size, config, nil)
+  self.fonts[name] = font
+  return font
+end
+
+function Context:GetFont(name)
+  return self.fonts[name]
 end
 
 -- auto activate
@@ -287,13 +279,7 @@ function Context:BeginFrame(dt)
   --         love.mouse.setCursor(cursor)
   --     end
   -- end
-
   -- _common.RunShortcuts()
-
-  if self.use_shared_font_texture then
-    -- make sure the font atlas is initialized
-    self.font_texture = L.FetchSharedFontTexture(self.font_texture_format)
-  end
 
   C.igNewFrame() -- if NewFrame, must call render
 end
@@ -307,6 +293,54 @@ function Context:Render()
     self.draw_data = nil
   else
     self.draw_data = C.igGetDrawData()
+    self:_process_draw_texture(self.draw_data)
+  end
+end
+
+function Context:_process_draw_texture(draw_data)
+  if not draw_data.Textures then
+    return
+  end
+
+  if (draw_data.DisplaySize.x * draw_data.FramebufferScale.x) <= 0
+    or (draw_data.DisplaySize.y * draw_data.FramebufferScale.y) <= 0
+  then
+    return
+  end
+
+  for i = 0, draw_data.Textures.Size - 1 do
+    local tex_info = draw_data.Textures.Data[i]
+    local status = tex_info.Status
+    if status ~= C.ImTextureStatus_OK then
+      if status == C.ImTextureStatus_WantCreate then
+        assert(tex_info.Format == C.ImTextureFormat_RGBA32, "Only the RGBA32 texture format is supported.")
+
+        local imgdata = lovr.data.newImage(tex_info.Width, tex_info.Height, "rgba8")
+        ffi.copy(imgdata:getPointer(), tex_info:GetPixels(), tex_info:GetSizeInBytes())
+        local tex = lovr.graphics.newTexture(imgdata, { usage = { 'transfer', 'sample' } })
+        local id = L.AddTexture(tex)
+        tex_info:SetTexID(id)
+        tex_info:SetStatus(C.ImTextureStatus_OK)
+        self.internal_textures[tex] = true
+      elseif status == C.ImTextureStatus_WantUpdates then
+        local id = tonumber(tex_info.TexID)
+        local tex = TexturesList[id]
+        local imgdata = lovr.data.newImage(tex_info.Width, tex_info.Height, 'rgba8')
+        ffi.copy(imgdata:getPointer(), tex_info:GetPixels(), tex_info:GetSizeInBytes())
+        tex:setPixels(imgdata)
+        tex_info:SetStatus(C.ImTextureStatus_OK)
+      elseif status == C.ImTextureStatus_WantDestroy and tex_info.UnusedFrames > 0 then
+        local id = tonumber(tex_info.TexID)
+        if id then
+          local tex = TexturesList[id]
+          self.internal_textures[tex] = nil
+          L.RemoveTexture(id)
+          tex:release()
+        end
+        tex_info:SetTexID(0)
+        tex_info:SetStatus(C.ImTextureStatus_Destroyed)
+      end
+    end
   end
 end
 
@@ -322,10 +356,6 @@ end
 --     [C.ImGuiMouseCursor_Hand] = love.mouse.getSystemCursor("hand"),
 --     [C.ImGuiMouseCursor_NotAllowed] = love.mouse.getSystemCursor("no"),
 -- }
-
-local function lovr_texture_test(t)
-  return t:type() == "Texture"
-end
 
 local DefaultDrawOpts = {}
 -- tf: mat4 transform, apply transform for 3d draw. draw 2d UI if not tf
@@ -428,20 +458,15 @@ function Context:Draw(pass, tf, opts)
 
         pass:setBlendMode("alpha", "alphamultiply")
 
-        local texture_id = C.ImDrawCmd_GetTexID(cmd)
-        if texture_id ~= 0 then
-          local obj = _common.textures[tostring(texture_id)]
-          local status, value = pcall(lovr_texture_test, obj)
-          assert(status and value, "Only Lovr Texture objects can be passed as ImTextureID arguments.")
+        local tex_id = tonumber(C.ImDrawCmd_GetTexID(cmd))
+        local tex = TexturesList[tex_id]
+        if tex then
           -- TODO fix, lovr texture & canvas are both Texture, need to setBlendMode?
           -- if obj:type() == "Texture" then
           --   pass:setBlendMode("alpha", "premultiplied")
           -- end
-          pass:setShader(self.default_shader)
-          pass:setMaterial(obj)
-        else
-          pass:setShader(self.custom_shader or self.font_shader or self.default_shader)
-          pass:setMaterial(self.font_texture)
+          pass:setShader(self.custom_shader or self.default_shader)
+          pass:setMaterial(tex)
         end
 
         if tf then
@@ -467,9 +492,19 @@ function Context:Destroy()
   self.platform_io = nil
   self.draw_data = nil
   self.activated = false
+  self.fonts = nil
+  self.mesh = nil
+  self.mesh_vdata = nil
+  self.mesh_idata = nil
   if ActivatedContext == self then
     ActivatedContext = nil
   end
+
+  for tex, _ in pairs(self.internal_textures) do
+    L.RemoveTexture(tex)
+  end
+  self.internal_textures = nil
+
   -- TODO Fix
   -- cliboard_callback_get:free()
   -- cliboard_callback_set:free()
@@ -627,4 +662,3 @@ for name in pairs(flags) do
     return bit.bor(unpack(t))
   end
 end
-

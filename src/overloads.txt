@@ -14,6 +14,10 @@ ImGuiTextRange
     ImGuiTextRange_Nil()
     ImGuiTextRange_Str(const char* _b,const char* _e)
 
+ImTextureRef
+    ImTextureRef_Nil()
+    ImTextureRef_TextureID(ImTextureID tex_id)
+
 ImVec2
     ImVec2_Nil()
     ImVec2_Float(float _x,float _y)
