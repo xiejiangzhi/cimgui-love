@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - Remove Shared Font. 1.92 does not support shared fonts for now, different contexts use their own font atlas.
+- NOTE: the cimgui repo is 1.92.0, wait it update to 1.92.1 or manually switch to 1.92.1, and regenerate code. Or use the cimgui.dll
 
 ## [1.91.1-1] (2024-09-12)
 ### Changed
