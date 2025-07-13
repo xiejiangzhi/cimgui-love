@@ -22,7 +22,8 @@ _common.callbacks = setmetatable({},{__mode="v"})
 local DefaultVertex2DShader = [[
   vec4 lovrmain() {
     vec2 uv = VertexPosition.xy / Resolution.xy;
-    Color = vec4(gammaToLinear(VertexColor.rgb), VertexColor.a) * Material.color * PassColor;
+    vec4 vcolor = vec4(gammaToLinear(VertexColor.rgb * VertexColor.a) / VertexColor.a, VertexColor.a);
+    Color = vcolor * Material.color * PassColor;
     return vec4(uv * 2. - 1., 1., 1.);
   }
 ]]
@@ -33,7 +34,8 @@ local DefaultVertex3DShader = [[
   };
 
   vec4 lovrmain() {
-    Color = vec4(gammaToLinear(VertexColor.rgb), VertexColor.a) * Material.color * PassColor;
+    vec4 vcolor = vec4(gammaToLinear(VertexColor.rgb * VertexColor.a) / VertexColor.a, VertexColor.a);
+    Color = vcolor * Material.color * PassColor;
     vec4 vp = vec4(VertexPosition.xy * vec2(0.01, -0.01), 0., 1.0);
     ClipDistance[0] = VertexPosition.x - UIClipMin.x;
     ClipDistance[1] = VertexPosition.y - UIClipMin.y;
