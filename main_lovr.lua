@@ -88,7 +88,9 @@ function lovr.update(dt)
   ImGui.PopFont()
   ImGui.PopStyleColor(1)
 
-  ImGui.Image(TestTex, ImGui.ImVec2_Float(200, 160), nil, nil)
+  ImGui.Image(TestTex, ImGui.ImVec2_Float(150, 100), nil, nil)
+  ImGui.SameLine()
+  ImGui.Image(ui_3d2.io.Fonts.TexRef, ImGui.ImVec2_Float(150, 100), nil, nil)
 
   ImGui.End()
   ui_3d2:Render()

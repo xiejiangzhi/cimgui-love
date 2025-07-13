@@ -91,8 +91,8 @@ function L.RemoveTexture(tex_or_id)
 end
 
 local ImTextureRef = ffi.typeof("ImTextureRef")
-function _common.TextureRef(texture)
-  assert(texture, "Argument should be a Lovr texture")
+function L.TextureRef(texture)
+  assert(type(texture) == 'userdata' and texture:type() == 'Texture', "Argument should be a Lovr texture")
   local id = TexturesMap[texture]
   if not id then
     id = L.AddTexture(texture)
@@ -330,9 +330,9 @@ function Context:_process_draw_texture(draw_data)
           usage = { 'transfer', 'sample' }, mipmaps = false, samples = 1
         })
         local id = L.AddTexture(tex)
+        self.internal_textures[tex] = true
         tex_info:SetTexID(id)
         tex_info:SetStatus(C.ImTextureStatus_OK)
-        self.internal_textures[tex] = true
       elseif status == C.ImTextureStatus_WantUpdates then
         local id = tonumber(tex_info.TexID)
         local tex = TexturesList[id]

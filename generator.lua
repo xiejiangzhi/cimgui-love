@@ -174,9 +174,9 @@ templates.function_begin =
     jit.off(true)]]
 
 templates.texture_ref =
-[[if type(&arg&) ~= 'cdata' then
-  &arg& = _common.TextureRef(&arg&)
-end]]
+[[    if type(&arg&) ~= 'cdata' then
+      &arg& = M.lovr.TextureRef(&arg&)
+    end]]
 templates.drawcallback =
 [[    if not ffi.istype("ImDrawCallback", &arg&) then
         local str = tostring(&arg&)

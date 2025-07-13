@@ -261,9 +261,9 @@ ImDrawList["AddImage"] = ImDrawList["AddImage"]  or function(i1, i2, i3, i4, i5,
     if i5 == nil then i5 = M.ImVec2_Float(0, 0) end
     if i6 == nil then i6 = M.ImVec2_Float(1, 1) end
     if i7 == nil then i7 = 4294967295 end
-if type(i2) ~= 'cdata' then
-  i2 = _common.TextureRef(i2)
-end
+    if type(i2) ~= 'cdata' then
+      i2 = M.lovr.TextureRef(i2)
+    end
     local out = C.ImDrawList_AddImage(i1, i2, i3, i4, i5, i6, i7)
     return out
 end
@@ -274,18 +274,18 @@ ImDrawList["AddImageQuad"] = ImDrawList["AddImageQuad"]  or function(i1, i2, i3,
     if i9 == nil then i9 = M.ImVec2_Float(1, 1) end
     if i10 == nil then i10 = M.ImVec2_Float(0, 1) end
     if i11 == nil then i11 = 4294967295 end
-if type(i2) ~= 'cdata' then
-  i2 = _common.TextureRef(i2)
-end
+    if type(i2) ~= 'cdata' then
+      i2 = M.lovr.TextureRef(i2)
+    end
     local out = C.ImDrawList_AddImageQuad(i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11)
     return out
 end
 ImDrawList["AddImageRounded"] = ImDrawList["AddImageRounded"]  or function(i1, i2, i3, i4, i5, i6, i7, i8, i9)
     jit.off(true)
     if i9 == nil then i9 = 0 end
-if type(i2) ~= 'cdata' then
-  i2 = _common.TextureRef(i2)
-end
+    if type(i2) ~= 'cdata' then
+      i2 = M.lovr.TextureRef(i2)
+    end
     local out = C.ImDrawList_AddImageRounded(i1, i2, i3, i4, i5, i6, i7, i8, i9)
     return out
 end
@@ -527,9 +527,9 @@ ImDrawList["PushClipRectFullScreen"] = ImDrawList["PushClipRectFullScreen"]  or 
 end
 ImDrawList["PushTexture"] = ImDrawList["PushTexture"]  or function(i1, i2)
     jit.off(true)
-if type(i2) ~= 'cdata' then
-  i2 = _common.TextureRef(i2)
-end
+    if type(i2) ~= 'cdata' then
+      i2 = M.lovr.TextureRef(i2)
+    end
     local out = C.ImDrawList_PushTexture(i1, i2)
     return out
 end
@@ -585,9 +585,9 @@ ImDrawList["_SetDrawListSharedData"] = ImDrawList["_SetDrawListSharedData"]  or 
 end
 ImDrawList["_SetTexture"] = ImDrawList["_SetTexture"]  or function(i1, i2)
     jit.off(true)
-if type(i2) ~= 'cdata' then
-  i2 = _common.TextureRef(i2)
-end
+    if type(i2) ~= 'cdata' then
+      i2 = M.lovr.TextureRef(i2)
+    end
     local out = C.ImDrawList__SetTexture(i1, i2)
     return out
 end
@@ -2548,9 +2548,9 @@ M.Image = M.Image  or function(i1, i2, i3, i4)
     jit.off(true)
     if i3 == nil then i3 = M.ImVec2_Float(0, 0) end
     if i4 == nil then i4 = M.ImVec2_Float(1, 1) end
-if type(i1) ~= 'cdata' then
-  i1 = _common.TextureRef(i1)
-end
+    if type(i1) ~= 'cdata' then
+      i1 = M.lovr.TextureRef(i1)
+    end
     local out = C.igImage(i1, i2, i3, i4)
     return out
 end
@@ -2560,9 +2560,9 @@ M.ImageButton = M.ImageButton  or function(i1, i2, i3, i4, i5, i6, i7)
     if i5 == nil then i5 = M.ImVec2_Float(1, 1) end
     if i6 == nil then i6 = M.ImVec4_Float(0, 0, 0, 0) end
     if i7 == nil then i7 = M.ImVec4_Float(1, 1, 1, 1) end
-if type(i2) ~= 'cdata' then
-  i2 = _common.TextureRef(i2)
-end
+    if type(i2) ~= 'cdata' then
+      i2 = M.lovr.TextureRef(i2)
+    end
     local out = C.igImageButton(i1, i2, i3, i4, i5, i6, i7)
     return out
 end
@@ -2572,9 +2572,9 @@ M.ImageWithBg = M.ImageWithBg  or function(i1, i2, i3, i4, i5, i6)
     if i4 == nil then i4 = M.ImVec2_Float(1, 1) end
     if i5 == nil then i5 = M.ImVec4_Float(0, 0, 0, 0) end
     if i6 == nil then i6 = M.ImVec4_Float(1, 1, 1, 1) end
-if type(i1) ~= 'cdata' then
-  i1 = _common.TextureRef(i1)
-end
+    if type(i1) ~= 'cdata' then
+      i1 = M.lovr.TextureRef(i1)
+    end
     local out = C.igImageWithBg(i1, i2, i3, i4, i5, i6)
     return out
 end
