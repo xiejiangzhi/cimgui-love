@@ -20,6 +20,7 @@ function lovr.load()
     ini_path = false, display_size = { 400, 300 }, impl_name = '3d2'
   })
 
+  ui_3d1:AddFontTTF('AwesomeFont.otf', 28, nil, 'icon')
   ui_3d2:AddFontTTF('AwesomeFont.otf', 28, nil, 'icon')
 end
 
@@ -59,8 +60,13 @@ function lovr.update(dt)
     ImGui.SetNextWindowSize(ImGui.ImVec2_Float(200, 200))
     ImGui.Begin('win_3d_1')
     ImGui.Dummy(ImGui.ImVec2_Float(10, 10))
+    local font = ui_3d1:GetFont('icon')
     for i = 1, 10 do
       ImGui.Text('3d win 1')
+      ImGui.SameLine()
+      ImGui.PushFont(font, 16)
+      ImGui.Text('\u{f015}')
+      ImGui.PopFont()
     end
     ImGui.Button('button')
     ImGui.End()

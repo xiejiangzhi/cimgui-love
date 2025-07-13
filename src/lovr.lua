@@ -230,6 +230,9 @@ function Context:SetShader(shader)
   self.custom_shader = shader
 end
 
+local FontsData = {}
+-- conf.args: { [ImFontConfig_key] = value, ... }
+-- conf.monospaced
 -- return ImFont*
 function Context:AddFontTTF(ttf_path, size, conf, name)
   name = name or ttf_path
@@ -238,11 +241,10 @@ function Context:AddFontTTF(ttf_path, size, conf, name)
     return font
   end
 
-  local font_conf
   size = size or 16
 
+  local font_conf = M.ImFontConfig()
   if conf then
-     font_conf = M.ImFontConfig()
     if conf.args then
       for k, v in pairs(conf.args) do
         font_conf[k] = v
@@ -253,8 +255,18 @@ function Context:AddFontTTF(ttf_path, size, conf, name)
       font_conf.GlyphMinAdvanceX = size
     end
   end
+  font_conf.FontDataOwnedByAtlas = false
 
-  font = self.io.Fonts:AddFontFromFileTTF(ttf_path, size, font_conf, nil)
+  local font_data = FontsData[ttf_path]
+  if not font_data then
+    local file = io.open(ttf_path, 'rb')
+    assert(file, "Cannot open font file "..tostring(ttf_path))
+    font_data = file:read('*a')
+    file:close()
+    FontsData[ttf_path] = font_data
+  end
+
+  font = self.io.Fonts:AddFontFromMemoryTTF(ffi.cast('void*', font_data), #font_data, size, font_conf)
   self.fonts[name] = font
   return font
 end
