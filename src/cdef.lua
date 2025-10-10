@@ -100,6 +100,7 @@ typedef int ImGuiStyleVar;
 typedef int ImGuiTableBgTarget;
 typedef int ImDrawFlags;
 typedef int ImDrawListFlags;
+typedef int ImDrawTextFlags;
 typedef int ImFontFlags;
 typedef int ImFontAtlasFlags;
 typedef int ImGuiBackendFlags;
@@ -115,6 +116,7 @@ typedef int ImGuiInputFlags;
 typedef int ImGuiInputTextFlags;
 typedef int ImGuiItemFlags;
 typedef int ImGuiKeyChord;
+typedef int ImGuiListClipperFlags;
 typedef int ImGuiPopupFlags;
 typedef int ImGuiMultiSelectFlags;
 typedef int ImGuiSelectableFlags;
@@ -229,6 +231,7 @@ typedef enum {
     ImGuiInputTextFlags_CallbackCharFilter = 1 << 21,
     ImGuiInputTextFlags_CallbackResize = 1 << 22,
     ImGuiInputTextFlags_CallbackEdit = 1 << 23,
+    ImGuiInputTextFlags_WordWrap = 1 << 24,
 }ImGuiInputTextFlags_;
 typedef enum {
     ImGuiTreeNodeFlags_None = 0,
@@ -276,6 +279,7 @@ typedef enum {
     ImGuiSelectableFlags_Disabled = 1 << 3,
     ImGuiSelectableFlags_AllowOverlap = 1 << 4,
     ImGuiSelectableFlags_Highlight = 1 << 5,
+    ImGuiSelectableFlags_SelectOnNav = 1 << 6,
 }ImGuiSelectableFlags_;
 typedef enum {
     ImGuiComboFlags_None = 0,
@@ -298,10 +302,11 @@ typedef enum {
     ImGuiTabBarFlags_NoTabListScrollingButtons = 1 << 4,
     ImGuiTabBarFlags_NoTooltip = 1 << 5,
     ImGuiTabBarFlags_DrawSelectedOverline = 1 << 6,
-    ImGuiTabBarFlags_FittingPolicyResizeDown = 1 << 7,
-    ImGuiTabBarFlags_FittingPolicyScroll = 1 << 8,
-    ImGuiTabBarFlags_FittingPolicyMask_ = ImGuiTabBarFlags_FittingPolicyResizeDown | ImGuiTabBarFlags_FittingPolicyScroll,
-    ImGuiTabBarFlags_FittingPolicyDefault_ = ImGuiTabBarFlags_FittingPolicyResizeDown,
+    ImGuiTabBarFlags_FittingPolicyMixed = 1 << 7,
+    ImGuiTabBarFlags_FittingPolicyShrink = 1 << 8,
+    ImGuiTabBarFlags_FittingPolicyScroll = 1 << 9,
+    ImGuiTabBarFlags_FittingPolicyMask_ = ImGuiTabBarFlags_FittingPolicyMixed | ImGuiTabBarFlags_FittingPolicyShrink | ImGuiTabBarFlags_FittingPolicyScroll,
+    ImGuiTabBarFlags_FittingPolicyDefault_ = ImGuiTabBarFlags_FittingPolicyMixed,
 }ImGuiTabBarFlags_;
 typedef enum {
     ImGuiTabItemFlags_None = 0,
@@ -668,11 +673,14 @@ typedef enum {
     ImGuiStyleVar_CellPadding,
     ImGuiStyleVar_ScrollbarSize,
     ImGuiStyleVar_ScrollbarRounding,
+    ImGuiStyleVar_ScrollbarPadding,
     ImGuiStyleVar_GrabMinSize,
     ImGuiStyleVar_GrabRounding,
     ImGuiStyleVar_ImageBorderSize,
     ImGuiStyleVar_TabRounding,
     ImGuiStyleVar_TabBorderSize,
+    ImGuiStyleVar_TabMinWidthBase,
+    ImGuiStyleVar_TabMinWidthShrink,
     ImGuiStyleVar_TabBarBorderSize,
     ImGuiStyleVar_TabBarOverlineSize,
     ImGuiStyleVar_TableAngledHeadersAngle,
@@ -894,12 +902,15 @@ struct ImGuiStyle
     float ColumnsMinSpacing;
     float ScrollbarSize;
     float ScrollbarRounding;
+    float ScrollbarPadding;
     float GrabMinSize;
     float GrabRounding;
     float LogSliderDeadzone;
     float ImageBorderSize;
     float TabRounding;
     float TabBorderSize;
+    float TabMinWidthBase;
+    float TabMinWidthShrink;
     float TabCloseButtonMinWidthSelected;
     float TabCloseButtonMinWidthUnselected;
     float TabBarBorderSize;
@@ -1108,6 +1119,10 @@ struct ImGuiStorage
 {
     ImVector_ImGuiStoragePair Data;
 };
+typedef enum {
+    ImGuiListClipperFlags_None = 0,
+    ImGuiListClipperFlags_NoSetTableRowCounters = 1 << 0,
+}ImGuiListClipperFlags_;
 struct ImGuiListClipper
 {
     ImGuiContext* Ctx;
@@ -1118,6 +1133,7 @@ struct ImGuiListClipper
     double StartPosY;
     double StartSeekOffsetY;
     void* TempData;
+    ImGuiListClipperFlags Flags;
 };
 struct ImColor
 {
@@ -1426,7 +1442,8 @@ struct ImFontBaked
     float Ascent, Descent;
     unsigned int MetricsTotalSurface:26;
     unsigned int WantDestroy:1;
-    unsigned int LockLoadingFallback:1;
+    unsigned int LoadNoFallback:1;
+    unsigned int LoadNoRenderOnLayout:1;
     int LastUsedFrame;
     ImGuiID BakedId;
     ImFont* ContainerFont;
@@ -2158,10 +2175,10 @@ extern  _Bool ImFont_IsGlyphInFont(ImFont* self,ImWchar c);
 extern  _Bool ImFont_IsLoaded(ImFont* self);
 extern  const char* ImFont_GetDebugName(ImFont* self);
 extern  ImFontBaked* ImFont_GetFontBaked(ImFont* self,float font_size,float density);
-extern  void ImFont_CalcTextSizeA(ImVec2 *pOut,ImFont* self,float size,float max_width,float wrap_width,const char* text_begin,const char* text_end,const char** remaining);
+extern  void ImFont_CalcTextSizeA(ImVec2 *pOut,ImFont* self,float size,float max_width,float wrap_width,const char* text_begin,const char* text_end,const char** out_remaining);
 extern  const char* ImFont_CalcWordWrapPosition(ImFont* self,float size,const char* text,const char* text_end,float wrap_width);
 extern  void ImFont_RenderChar(ImFont* self,ImDrawList* draw_list,float size,const ImVec2 pos,ImU32 col,ImWchar c,const ImVec4* cpu_fine_clip);
-extern  void ImFont_RenderText(ImFont* self,ImDrawList* draw_list,float size,const ImVec2 pos,ImU32 col,const ImVec4 clip_rect,const char* text_begin,const char* text_end,float wrap_width,_Bool cpu_fine_clip);
+extern  void ImFont_RenderText(ImFont* self,ImDrawList* draw_list,float size,const ImVec2 pos,ImU32 col,const ImVec4 clip_rect,const char* text_begin,const char* text_end,float wrap_width,ImDrawTextFlags flags);
 extern  void ImFont_ClearOutputData(ImFont* self);
 extern  void ImFont_AddRemapChar(ImFont* self,ImWchar from_codepoint,ImWchar to_codepoint);
 extern  _Bool ImFont_IsGlyphRangeUnused(ImFont* self,unsigned int c_begin,unsigned int c_last);

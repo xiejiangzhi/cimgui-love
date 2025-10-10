@@ -700,7 +700,7 @@ end
 ImFont["RenderText"] = ImFont["RenderText"]  or function(i1, i2, i3, i4, i5, i6, i7, i8, i9, i10)
     jit.off(true)
     if i9 == nil then i9 = 0.0 end
-    if i10 == nil then i10 = false end
+    if i10 == nil then i10 = 0 end
     local out = C.ImFont_RenderText(i1, i2, i3, i4, i5, i6, i7, i8, i9, i10)
     return out
 end

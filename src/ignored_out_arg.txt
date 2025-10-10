@@ -1,4 +1,5 @@
 ImFontAtlas_AddCustomRect: ImFontAtlasRect* out_r
 ImFontAtlas_GetCustomRect: ImFontAtlasRect* out_r
+ImFont_CalcTextSizeA: const char** out_remaining
 ImGuiTextRange_split: ImVector_ImGuiTextRange* out
 ImTextureData_GetTexRef: ImTextureRef* pOut
