@@ -646,6 +646,7 @@ typedef enum {
     ImGuiCol_TextSelectedBg,
     ImGuiCol_TreeLines,
     ImGuiCol_DragDropTarget,
+    ImGuiCol_UnsavedMarker,
     ImGuiCol_NavCursor,
     ImGuiCol_NavWindowingHighlight,
     ImGuiCol_NavWindowingDimBg,
@@ -1467,7 +1468,7 @@ struct ImFont
     ImVector_ImFontConfigPtr Sources;
     ImWchar EllipsisChar;
     ImWchar FallbackChar;
-    ImU8 Used8kPagesMap[(0xFFFF +1)/8192/8];
+    ImU8 Used8kPagesMap[(0xFFFF+1)/8192/8];
     _Bool EllipsisAutoBake;
     ImGuiStorage RemapPairs;
 };
@@ -2188,6 +2189,8 @@ extern  void ImGuiViewport_GetCenter(ImVec2 *pOut,ImGuiViewport* self);
 extern  void ImGuiViewport_GetWorkCenter(ImVec2 *pOut,ImGuiViewport* self);
 extern  ImGuiPlatformIO* ImGuiPlatformIO_ImGuiPlatformIO(void);
 extern  void ImGuiPlatformIO_destroy(ImGuiPlatformIO* self);
+extern  void ImGuiPlatformIO_ClearPlatformHandlers(ImGuiPlatformIO* self);
+extern  void ImGuiPlatformIO_ClearRendererHandlers(ImGuiPlatformIO* self);
 extern  ImGuiPlatformImeData* ImGuiPlatformImeData_ImGuiPlatformImeData(void);
 extern  void ImGuiPlatformImeData_destroy(ImGuiPlatformImeData* self);
 extern  void ImGuiTextBuffer_appendf(ImGuiTextBuffer *self, const char *fmt, ...);

@@ -1150,6 +1150,16 @@ ffi.metatype("ImGuiPayload", ImGuiPayload)
 
 local ImGuiPlatformIO = ImGuiPlatformIO or {}
 ImGuiPlatformIO.__index = ImGuiPlatformIO
+ImGuiPlatformIO["ClearPlatformHandlers"] = ImGuiPlatformIO["ClearPlatformHandlers"]  or function(i1)
+    jit.off(true)
+    local out = C.ImGuiPlatformIO_ClearPlatformHandlers(i1)
+    return out
+end
+ImGuiPlatformIO["ClearRendererHandlers"] = ImGuiPlatformIO["ClearRendererHandlers"]  or function(i1)
+    jit.off(true)
+    local out = C.ImGuiPlatformIO_ClearRendererHandlers(i1)
+    return out
+end
 local mt = getmetatable(ImGuiPlatformIO) or {}
 mt.__call = mt.__call or function(self)
     jit.off(true)
@@ -1647,21 +1657,6 @@ end
 M.ImVec4 = ImVec4
 ffi.metatype("ImVec4", ImVec4)
 
-M.ImGuiFreeType_DebugEditFontLoaderFlags = M.ImGuiFreeType_DebugEditFontLoaderFlags  or function(i1)
-    jit.off(true)
-    local out = C.ImGuiFreeType_DebugEditFontLoaderFlags(i1)
-    return out
-end
-M.ImGuiFreeType_GetFontLoader = M.ImGuiFreeType_GetFontLoader  or function()
-    jit.off(true)
-    local out = C.ImGuiFreeType_GetFontLoader()
-    return out
-end
-M.ImGuiFreeType_SetAllocatorFunctions = M.ImGuiFreeType_SetAllocatorFunctions  or function(i1, i2, i3)
-    jit.off(true)
-    local out = C.ImGuiFreeType_SetAllocatorFunctions(i1, i2, i3)
-    return out
-end
 M.AcceptDragDropPayload = M.AcceptDragDropPayload  or function(i1, i2)
     jit.off(true)
     if i2 == nil then i2 = 0 end

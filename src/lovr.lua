@@ -280,9 +280,8 @@ end
 -- auto activate
 function Context:BeginFrame(dt)
   assert(self.context, "Cannot draw for a invalid context")
-  if not self.activated then
-    self:Activate()
-  end
+  -- Preventing incorrect context
+  self:Activate()
 
   self.io.DeltaTime = dt
 
@@ -424,9 +423,8 @@ function Context:Draw(pass, tf, opts)
     pass:setDepthTest('none')
   end
 
-  if not self.activated then
-    self:Activate()
-  end
+  -- Preventing incorrect context
+  self:Activate()
 
   local data = self.draw_data
 
