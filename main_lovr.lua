@@ -13,15 +13,17 @@ local time = 0
 
 function lovr.load()
   ui_2d = ImGui.lovr.NewContext('2d', { impl_name = '2d' })
+
   ui_3d1 = ImGui.lovr.NewContext('3d', {
-    ini_path = false, display_size = { 200, 200 }, impl_name = '3d1'
+    ini_path = false, display_size = { 200, 200 }, impl_name = '3d1',
+    master_context = ui_2d -- for shared font
   })
   ui_3d2 = ImGui.lovr.NewContext('3d', {
-    ini_path = false, display_size = { 400, 300 }, impl_name = '3d2'
+    ini_path = false, display_size = { 400, 300 }, impl_name = '3d2',
+    master_context = ui_2d
   })
 
-  ui_3d1:AddFontTTF('AwesomeFont.otf', 28, nil, 'icon')
-  ui_3d2:AddFontTTF('AwesomeFont.otf', 28, nil, 'icon')
+  ui_2d:AddFontTTF('AwesomeFont.otf', 28, nil, 'icon')
 end
 
 local fps = 0

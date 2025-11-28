@@ -107,13 +107,13 @@ end
 --[[
 vertex_shader: nil, 2d, 3d or vertex shader code
 opts.ini_path
-opts.default_font: { ttf_path, size, conf }, args of AddFontTTF
+opts.default_font: { ttf_path, size, conf }, args of AddFontTTF.
 opts.default_font: string, ttf_path
 opts.default_font: nil, add default font
 opts.default_font: false, don't add default font.
 opts.display_size { x, y }, default use lovr window size
 opts.name: backend name
-opts.font_tex_format: 'alpha8' or 'rgba8'
+opts.master_context: for shared font between contexts. ignore default_font if has master_context
 ]]
 function Context.new(vertex_shader, opts)
   local self = setmetatable({}, Context)
@@ -136,26 +136,35 @@ function Context.new(vertex_shader, opts)
 
   local prev_ctx = C.igGetCurrentContext()
 
-  self.context = C.igCreateContext(nil)
+  if opts.master_context then
+    print('master_font', opts.master_context.io.Fonts)
+    self.context = C.igCreateContext(opts.master_context.io.Fonts)
+    self.fonts = opts.master_context.fonts
+  else
+    self.context = C.igCreateContext(nil)
+    self.fonts = {} -- name_or_path -> ImFont
+  end
   ffi.gc(self.context, C.igDestroyContext)
   self.activated = false
   self:Activate()
   self.io = C.igGetIO()
   self.platform_io = C.igGetPlatformIO()
-  self.fonts = {} -- name_or_path -> ImFont
   self.internal_textures = {}
 
-  if opts.default_font then
-    local desc = opts.default_font
-    if type(desc) == 'table' then
-      self.fonts.default = self:AddFontTTF(desc[1], desc[2], desc[3])
-    elseif type(desc) == 'string' then
-      self.fonts.default = self:AddFontTTF(desc)
-    else
-      error("Invalid font desc")
+  -- don't add default font again if usage shared font
+  if not self.fonts.default then
+    if opts.default_font then
+      local desc = opts.default_font
+      if type(desc) == 'table' then
+        self.fonts.default = self:AddFontTTF(desc[1], desc[2], desc[3])
+      elseif type(desc) == 'string' then
+        self.fonts.default = self:AddFontTTF(desc)
+      else
+        error("Invalid font desc")
+      end
+    elseif opts.default_font == nil then
+      self.fonts.default = self.io.Fonts:AddFontDefault()
     end
-  elseif opts.default_font == nil then
-    self.fonts.default = self.io.Fonts:AddFontDefault()
   end
 
   -- TODO Fix
