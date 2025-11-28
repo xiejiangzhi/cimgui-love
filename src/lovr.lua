@@ -258,6 +258,7 @@ function Context:AddFontTTF(ttf_path, size, conf, name)
     end
   end
   font_conf.FontDataOwnedByAtlas = false
+  font_conf.Name = #name >= 40 and name:sub(#name - 38) or name
 
   local font_data = FontsData[ttf_path]
   if not font_data then
@@ -402,21 +403,21 @@ function Context:Draw(pass, tf, opts)
   if tf then
     local vsize = self.io.DisplaySize
     if opts.viewport_debug then
-      pass:sphere(tf * mat4(vec3(0), vec3(0.02)))
+      pass:sphere(tf * mat4(vec3(0), vec3(0.02), nil))
       if opts.pivot then
         local w, h = vsize.x * 0.01, vsize.y * 0.01
         pass:setColor(0.5, 0.5, 0.5, 1)
-        pass:plane(tf * mat4(vec3(w * 0.5, -h * 0.5, 0), vec3(w, h, 1)), 'line')
+        pass:plane(tf * mat4(vec3(w * 0.5, -h * 0.5, 0), vec3(w, h, 1), nil), 'line')
         pass:setColor(1, 1, 1, 1)
       end
     end
     if opts.pivot then
       local ox, oy = vsize.x * opts.pivot.x, vsize.y * opts.pivot.y
-      tf:mul(mat4(vec3(-ox * 0.01, oy * 0.01, 0), vec3(1)))
+      tf:mul(mat4(vec3(-ox * 0.01, oy * 0.01, 0), vec3(1), nil))
     end
     if opts.viewport_debug then
       local w, h =vsize.x * 0.01, vsize.y * 0.01
-      pass:plane(tf * mat4(vec3(w * 0.5, -h * 0.5, 0), vec3(w, h, 1)), 'line')
+      pass:plane(tf * mat4(vec3(w * 0.5, -h * 0.5, 0), vec3(w, h, 1), nil), 'line')
     end
     pass:transform(tf)
   else

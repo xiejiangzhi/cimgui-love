@@ -107,7 +107,8 @@ function lovr.draw(pass)
   pass:sphere(vec3(-2.5, 1.5, -4.6), vec3(1.0))
 
   ui_3d1:Draw(pass, mat4(vec3(-3, 4, -4)), { viewport_debug = true, pivot = vec2(0.5, 0.5) })
-  ui_3d2:Draw(pass, mat4(vec3(-2, 3, -4), vec3(1), quat(-0.8, 1, 1, 0)), {
+  local rot = quat.angleaxis and quat.angleaxis(-0.8, 1, 1, 0) or quat(-0.8, 1, 1, 0)
+  ui_3d2:Draw(pass, mat4(vec3(-2, 3, -4), vec3(1), rot), {
     viewport_debug = true,
     pivot = { x = 0.5, y = 0 }
   })
