@@ -114,6 +114,8 @@ opts.default_font: false, don't add default font.
 opts.display_size { x, y }, default use lovr window size
 opts.name: backend name
 opts.master_context: for shared font between contexts. ignore default_font if has master_context
+
+NOTE: the master_context must call Render every frame to build font texture
 ]]
 function Context.new(vertex_shader, opts)
   local self = setmetatable({}, Context)
@@ -137,7 +139,6 @@ function Context.new(vertex_shader, opts)
   local prev_ctx = C.igGetCurrentContext()
 
   if opts.master_context then
-    print('master_font', opts.master_context.io.Fonts)
     self.context = C.igCreateContext(opts.master_context.io.Fonts)
     self.fonts = opts.master_context.fonts
   else
@@ -318,6 +319,7 @@ end
 
 function Context:Render()
   assert(self.context, "Cannot draw for a invalid context")
+  self:Activate()
   C.igRender()
   if self.io.DisplaySize.x == 0 or self.io.DisplaySize.y == 0
     -- or not love.window.isVisible()
