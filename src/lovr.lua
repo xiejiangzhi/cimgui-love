@@ -56,8 +56,9 @@ local ShaderFlags = {
   ambientOcclusion = false,
 }
 
-local TexturesList = setmetatable({}, {__mode = "v"})
-local TexturesMap = setmetatable({}, {__mode = "k"})
+-- auto gc texture if texture not ref by context for user code
+local TexturesList = setmetatable({}, { __mode = 'v' })
+local TexturesMap = setmetatable({}, { __mode = 'k' })
 
 local Context = {}
 Context.__index = Context
@@ -66,7 +67,7 @@ function L.NewContext(...)
   return Context.new(...)
 end
 
--- prevent_gc: default is false
+-- weak ref.
 function L.AddTexture(tex)
   local id = TexturesMap[tex]
   if not id then
@@ -93,6 +94,7 @@ function L.RemoveTexture(tex_or_id)
 end
 
 local ImTextureRef = ffi.typeof("ImTextureRef")
+-- create ImTextureRef. lua weak ref
 function L.TextureRef(texture)
   assert(type(texture) == 'userdata' and texture:type() == 'Texture', "Argument should be a Lovr texture")
   local id = TexturesMap[texture]
@@ -114,21 +116,26 @@ opts.default_font: false, don't add default font.
 opts.display_size { x, y }, default use lovr window size
 opts.name: backend name
 opts.master_context: for shared font between contexts. ignore default_font if has master_context
+opts.vertex_code
 
 NOTE: the master_context must call Render every frame to build font texture
 ]]
-function Context.new(vertex_shader, opts)
+function Context.new(render_mode, opts)
   local self = setmetatable({}, Context)
   opts = opts or {}
 
-  if vertex_shader == '3d' then
-    self.vertex_shader = DefaultVertex3DShader
-  elseif vertex_shader == '2d' or not vertex_shader then
-    self.vertex_shader = DefaultVertex2DShader
+  if render_mode == '3d' then
+    self.render_mode = render_mode
+    self.vertex_code = opts.vertex_code or DefaultVertex3DShader
+  elseif render_mode == '2d' then
+    self.render_mode = render_mode
+    self.vertex_code = opts.vertex_code or DefaultVertex2DShader
+  else
+    error("Invalid render mode "..tostring(render_mode))
   end
 
   self.custom_shader = nil
-  self.default_shader = lovr.graphics.newShader(self.vertex_shader, [[
+  self.default_shader = lovr.graphics.newShader(self.vertex_code, [[
     vec4 lovrmain() {
       return DefaultColor;
     }
@@ -141,16 +148,18 @@ function Context.new(vertex_shader, opts)
   if opts.master_context then
     self.context = C.igCreateContext(opts.master_context.io.Fonts)
     self.fonts = opts.master_context.fonts
+    -- ref texture to avoid gc
+    self.tex_refs = opts.master_context.tex_refs
   else
     self.context = C.igCreateContext(nil)
     self.fonts = {} -- name_or_path -> ImFont
+    self.tex_refs = {}
   end
   ffi.gc(self.context, C.igDestroyContext)
   self.activated = false
   self:Activate()
   self.io = C.igGetIO()
   self.platform_io = C.igGetPlatformIO()
-  self.internal_textures = {}
 
   -- don't add default font again if usage shared font
   if not self.fonts.default then
@@ -347,7 +356,10 @@ function Context:_process_draw_texture(draw_data)
     local status = tex_info.Status
     if status ~= C.ImTextureStatus_OK then
       if status == C.ImTextureStatus_WantCreate then
-        assert(tex_info.Format == C.ImTextureFormat_RGBA32, "Only the RGBA32 texture format is supported.")
+        assert(
+          tex_info.Format == C.ImTextureFormat_RGBA32,
+          "Only the RGBA32 texture format is supported."
+        )
 
         local imgdata = lovr.data.newImage(tex_info.Width, tex_info.Height, "rgba8")
         ffi.copy(imgdata:getPointer(), tex_info:GetPixels(), tex_info:GetSizeInBytes())
@@ -355,9 +367,9 @@ function Context:_process_draw_texture(draw_data)
           usage = { 'transfer', 'sample' }, mipmaps = false, samples = 1
         })
         local id = L.AddTexture(tex)
-        self.internal_textures[tex] = true
         tex_info:SetTexID(id)
         tex_info:SetStatus(C.ImTextureStatus_OK)
+        self.tex_refs[tex] = true
       elseif status == C.ImTextureStatus_WantUpdates then
         local id = tonumber(tex_info.TexID)
         local tex = TexturesList[id]
@@ -365,11 +377,12 @@ function Context:_process_draw_texture(draw_data)
         ffi.copy(imgdata:getPointer(), tex_info:GetPixels(), tex_info:GetSizeInBytes())
         tex:setPixels(imgdata)
         tex_info:SetStatus(C.ImTextureStatus_OK)
+        self.tex_refs[tex] = true
       elseif status == C.ImTextureStatus_WantDestroy and tex_info.UnusedFrames > 0 then
         local id = tonumber(tex_info.TexID)
         if id then
           local tex = TexturesList[id]
-          self.internal_textures[tex] = nil
+          self.tex_refs[tex] = nil
           L.RemoveTexture(id)
           tex:release()
         end
@@ -399,7 +412,6 @@ local DefaultDrawOpts = {}
 -- opts.viewport_debug
 function Context:Draw(pass, tf, opts)
   if not self.draw_data then return end
-  opts = opts or DefaultDrawOpts
 
   pass:push("state")
   pass:push('transform')
@@ -411,7 +423,22 @@ function Context:Draw(pass, tf, opts)
   pass:setBlendMode('alpha', 'alphamultiply')
   pass:setSampler('linear')
 
-  if tf then
+  local ok, err = pcall(self._DrawImpl, self, pass, tf, opts)
+
+  pass:setScissor()
+  pass:pop("transform")
+  pass:pop('state')
+
+  if not ok then
+    error('Failed to draw ui '..self.name..'. '..err)
+  end
+end
+
+function Context:_DrawImpl(pass, tf, opts)
+  opts = opts or DefaultDrawOpts
+  if self.render_mode == '3d' then
+    assert(tf, "Transform cannot be nil for 3D render")
+
     local vsize = self.io.DisplaySize
     if opts.viewport_debug then
       pass:sphere(tf * mat4(vec3(0), vec3(0.02), nil))
@@ -492,34 +519,32 @@ function Context:Draw(pass, tf, opts)
         local clipW = cmd.ClipRect.z - clipX
         local clipH = cmd.ClipRect.w - clipY
 
-        -- pass:setBlendMode("alpha", "alphamultiply")
+        if clipW > 0 and clipH > 0 then
+          -- pass:setBlendMode("alpha", "alphamultiply")
 
-        local tex_id = tonumber(C.ImDrawCmd_GetTexID(cmd))
-        local tex = TexturesList[tex_id]
-        if tex then
-          -- TODO fix, lovr texture & canvas are both Texture, need to setBlendMode?
-          -- if obj:type() == "Texture" then
-          --   pass:setBlendMode("alpha", "premultiplied")
-          -- end
-          pass:setShader(self.custom_shader or self.default_shader)
-          pass:setMaterial(tex)
-        end
+          local tex_id = tonumber(C.ImDrawCmd_GetTexID(cmd))
+          local tex = TexturesList[tex_id]
+          if tex then
+            -- TODO fix, lovr texture & canvas are both Texture, need to setBlendMode?
+            -- if obj:type() == "Texture" then
+            --   pass:setBlendMode("alpha", "premultiplied")
+            -- end
+            pass:setShader(self.custom_shader or self.default_shader)
+            pass:setMaterial(tex)
+          end
 
-        if tf then
-          pass:send('UIClipMin', vec2(clipX, clipY))
-          pass:send('UIClipMax', vec2(clipX + clipW, clipY + clipH))
-        else
-          pass:setScissor(clipX, clipY, clipW, clipH)
+          if self.render_mode == '3d' then
+            pass:send('UIClipMin', vec2(clipX, clipY))
+            pass:send('UIClipMax', vec2(clipX + clipW, clipY + clipH))
+          else
+            pass:setScissor(clipX, clipY, clipW, clipH)
+          end
+          self.mesh:setDrawRange(list_info.isidx + cmd.IdxOffset + 1, cmd.ElemCount, list_info.vsidx)
+          pass:draw(self.mesh)
         end
-        self.mesh:setDrawRange(list_info.isidx + cmd.IdxOffset + 1, cmd.ElemCount, list_info.vsidx)
-        pass:draw(self.mesh)
       end
     end
   end
-
-  pass:setScissor()
-  pass:pop("transform")
-  pass:pop('state')
 end
 
 function Context:Destroy()
@@ -532,19 +557,10 @@ function Context:Destroy()
   self.mesh = nil
   self.mesh_vdata = nil
   self.mesh_idata = nil
+  self.tex_refs = nil
   if ActivatedContext == self then
     ActivatedContext = nil
   end
-
-  for tex, _ in pairs(self.internal_textures) do
-    L.RemoveTexture(tex)
-  end
-  self.internal_textures = nil
-
-  -- TODO Fix
-  -- cliboard_callback_get:free()
-  -- cliboard_callback_set:free()
-  -- cliboard_callback_get, cliboard_callback_set = nil
 end
 
 ------------------------ Input ----------------------
@@ -552,44 +568,44 @@ end
 function Context:MouseMoved(x, y)
   -- TODO Fix
   -- if love.window.hasMouseFocus() then
-    self.io:AddMousePosEvent(x, y)
+    C.ImGuiIO_AddMousePosEvent(self.io, x, y)
   -- end
 end
 
 local mouse_buttons = { true, true, true }
 function Context:MousePressed(button)
   if mouse_buttons[button] then
-    self.io:AddMouseButtonEvent(button - 1, true)
+    C.ImGuiIO_AddMouseButtonEvent(self.io, button - 1, true)
   end
 end
 
 function Context:MouseReleased(button)
   if mouse_buttons[button] then
-    self.io:AddMouseButtonEvent(button - 1, false)
+    C.ImGuiIO_AddMouseButtonEvent(self.io, button - 1, false)
   end
 end
 
 function Context:WheelMoved(x, y)
-  self.io:AddMouseWheelEvent(x, y)
+  C.ImGuiIO_AddMouseWheelEvent(self.io, x, y)
 end
 
 function Context:KeyPressed(key)
   local t = lovrkeymap[key]
   if type(t) == "table" then
-    self.io:AddKeyEvent(t[1], true)
-    self.io:AddKeyEvent(t[2], true)
+    C.ImGuiIO_AddKeyEvent(self.io, t[1], true)
+    C.ImGuiIO_AddKeyEvent(self.io, t[2], true)
   else
-    self.io:AddKeyEvent(t or C.ImGuiKey_None, true)
+    C.ImGuiIO_AddKeyEvent(self.io, t or C.ImGuiKey_None, true)
   end
 end
 
 function Context:KeyReleased(key)
   local t = lovrkeymap[key]
   if type(t) == "table" then
-    self.io:AddKeyEvent(t[1], false)
-    self.io:AddKeyEvent(t[2], false)
+    C.ImGuiIO_AddKeyEvent(self.io, t[1], false)
+    C.ImGuiIO_AddKeyEvent(self.io, t[2], false)
   else
-    self.io:AddKeyEvent(t or C.ImGuiKey_None, false)
+    C.ImGuiIO_AddKeyEvent(self.io, t or C.ImGuiKey_None, false)
   end
 end
 
@@ -689,11 +705,15 @@ for name in pairs(flags) do
   local shortname = name:gsub("^ImGui", "")
   shortname = shortname:gsub("^Im", "")
   L[shortname] = function(...)
-    local t = {}
-    for _, flag in ipairs({...}) do
-      t[#t + 1] = M[name .. "_" .. flag]
+    local r = 0
+    for i = 1, select('#', ...) do
+      local flag_name = name .. "_" .. select(i, ...)
+      local v = M[flag_name]
+      assert(v, "Invalid tag "..flag_name)
+      r = bit.bor(r, v)
     end
-    return bit.bor(unpack(t))
+    return r
   end
 end
+
 
