@@ -22,7 +22,9 @@ _common.callbacks = setmetatable({},{__mode="v"})
 local DefaultVertex2DShader = [[
   vec4 lovrmain() {
     vec2 uv = VertexPosition.xy / Resolution.xy;
-    vec4 vcolor = vec4(gammaToLinear(VertexColor.rgb * VertexColor.a) / VertexColor.a, VertexColor.a);
+    vec4 vcolor = VertexColor.a == 0 ? vec4(0) : vec4(
+      gammaToLinear(VertexColor.rgb * VertexColor.a) / VertexColor.a, VertexColor.a
+    );
     Color = vcolor * Material.color * PassColor;
     return vec4(uv * 2. - 1., 1., 1.);
   }
@@ -34,7 +36,9 @@ local DefaultVertex3DShader = [[
   };
 
   vec4 lovrmain() {
-    vec4 vcolor = vec4(gammaToLinear(VertexColor.rgb * VertexColor.a) / VertexColor.a, VertexColor.a);
+    vec4 vcolor = VertexColor.a == 0 ? vec4(0) : vec4(
+      gammaToLinear(VertexColor.rgb * VertexColor.a) / VertexColor.a, VertexColor.a
+    );
     Color = vcolor * Material.color * PassColor;
     vec4 vp = vec4(VertexPosition.xy * vec2(0.01, -0.01), 0., 1.0);
     ClipDistance[0] = VertexPosition.x - UIClipMin.x;
@@ -117,6 +121,7 @@ opts.display_size { x, y }, default use lovr window size
 opts.name: backend name
 opts.master_context: for shared font between contexts. ignore default_font if has master_context
 opts.vertex_code
+opts.pixel_code
 
 NOTE: the master_context must call Render every frame to build font texture
 ]]
@@ -135,7 +140,7 @@ function Context.new(render_mode, opts)
   end
 
   self.custom_shader = nil
-  self.default_shader = lovr.graphics.newShader(self.vertex_code, [[
+  self.default_shader = lovr.graphics.newShader(self.vertex_code, opts.pixel_code or [[
     vec4 lovrmain() {
       return DefaultColor;
     }
@@ -416,22 +421,28 @@ function Context:Draw(pass, tf, opts)
   pass:push("state")
   pass:push('transform')
 
+  self:SetupDrawEnv(pass)
+
+  local err_cb = function(err)
+    print('Failed to draw ui '..self.name..'.\n'..err..'\n'..debug.traceback())
+  end
+  local ok = xpcall(self._DrawImpl, err_cb, self, pass, tf, opts)
+
+  pass:setScissor()
+  pass:pop("transform")
+  pass:pop('state')
+  if not ok then
+    error("Failed to draw ui "..self.name)
+  end
+end
+
+function Context:SetupDrawEnv(pass)
   pass:setFaceCull('none')
   pass:setViewCull(false)
   pass:setDepthWrite(false)
   pass:setMaterial()
   pass:setBlendMode('alpha', 'alphamultiply')
   pass:setSampler('linear')
-
-  local ok, err = pcall(self._DrawImpl, self, pass, tf, opts)
-
-  pass:setScissor()
-  pass:pop("transform")
-  pass:pop('state')
-
-  if not ok then
-    error('Failed to draw ui '..self.name..'. '..err)
-  end
 end
 
 function Context:_DrawImpl(pass, tf, opts)
@@ -512,8 +523,15 @@ function Context:_DrawImpl(pass, tf, opts)
     for k = 0, cmd_list.CmdBuffer.Size - 1 do
       local cmd = cmd_list.CmdBuffer.Data[k]
       if cmd.UserCallback ~= nil then
-        local callback = _common.callbacks[ffi.string(ffi.cast("void*", cmd.UserCallback))] or cmd.UserCallback
-        callback(cmd_list, cmd)
+        local cb_id = ffi.string(ffi.cast("void*", cmd.UserCallback))
+        local callback = _common.callbacks[cb_id]
+        if callback then
+          -- lua callback
+          callback(self, pass, cmd_list, cmd)
+        else
+          -- c callback
+          cmd.UserCallback(cmd_list, cmd)
+        end
       elseif cmd.ElemCount > 0 then
         local clipX, clipY = cmd.ClipRect.x, cmd.ClipRect.y
         local clipW = cmd.ClipRect.z - clipX
@@ -715,5 +733,3 @@ for name in pairs(flags) do
     return r
   end
 end
-
-
