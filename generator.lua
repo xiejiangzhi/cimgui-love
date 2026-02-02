@@ -179,7 +179,7 @@ templates.texture_ref =
     end]]
 templates.drawcallback =
 [[    if not ffi.istype("ImDrawCallback", &arg&) then
-        local str = tostring(&arg&)
+        local str = string.format("LuaCb#%p", &arg&)
         _common.callbacks[str] = &arg&
         i2 = ffi.cast("ImDrawCallback", str)
     end]]
