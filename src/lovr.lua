@@ -40,12 +40,12 @@ local DefaultVertex3DShader = [[
       gammaToLinear(VertexColor.rgb * VertexColor.a) / VertexColor.a, VertexColor.a
     );
     Color = vcolor * Material.color * PassColor;
-    vec4 vp = vec4(VertexPosition.xy * vec2(0.01, -0.01), 0., 1.0);
+    vec4 vp = vec4(VertexPosition.xyz * vec3(0.01, -0.01, 0.01), 1.0);
     ClipDistance[0] = VertexPosition.x - UIClipMin.x;
     ClipDistance[1] = VertexPosition.y - UIClipMin.y;
     ClipDistance[2] = UIClipMax.x - VertexPosition.x;
     ClipDistance[3] = UIClipMax.y - VertexPosition.y;
-    PositionWorld = vec3(WorldFromLocal * vp);
+    PositionWorld = vec3(Transform * vp);
     Normal = NormalMatrix * vec3(0, 0, 1);
     return ViewProjection * Transform * vp;
   }
@@ -424,7 +424,7 @@ function Context:Draw(pass, tf, opts)
   self:SetupDrawEnv(pass)
 
   local err_cb = function(err)
-    print('Failed to draw ui '..self.name..'.\n'..err..'\n'..debug.traceback())
+    print('[ERROR] Failed to draw ui '..self.name..'.\n'..err..'\n'..debug.traceback())
   end
   local ok = xpcall(self._DrawImpl, err_cb, self, pass, tf, opts)
 
@@ -523,6 +523,8 @@ function Context:_DrawImpl(pass, tf, opts)
     for k = 0, cmd_list.CmdBuffer.Size - 1 do
       local cmd = cmd_list.CmdBuffer.Data[k]
       if cmd.UserCallback ~= nil then
+        pass:setShader()
+        pass:setMaterial()
         local cb_id = ffi.string(ffi.cast("void*", cmd.UserCallback))
         local callback = _common.callbacks[cb_id]
         if callback then
