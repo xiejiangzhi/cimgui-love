@@ -3,6 +3,7 @@ if lovr then
     -- t.graphics.vsync = false
     t.window.width = 1400
     t.window.height = 900
+    t.window.resizable = true
     t.headset.drivers = { 'simulator' }
   end
 elseif love then

@@ -169,6 +169,10 @@ function lovr.textinput(t)
   end
 end
 
+function lovr.resize(w, h)
+  ui_2d:Resize(w, h)
+end
+
 function lovr.quit()
   ui_2d:Destroy()
   ui_3d1:Destroy()

@@ -528,6 +528,8 @@ function Context:_DrawImpl(pass, tf, opts)
         if callback then
           -- lua callback
           callback(self, pass, cmd_list, cmd)
+        elseif cb_id:sub(1, 4) == 'LCb#' then
+          print("[ERROR] Draw callback was released.")
         else
           -- c callback
           cmd.UserCallback(cmd_list, cmd)
@@ -566,6 +568,8 @@ function Context:_DrawImpl(pass, tf, opts)
 end
 
 function Context:Destroy()
+  ffi.gc(self.context, nil)
+  C.igDestroyContext(self.context)
   self.context = nil
   self.io = nil
   self.platform_io = nil
@@ -695,6 +699,10 @@ end
 --     end
 -- end
 
+function Context:Resize(w, h)
+  self.w, self.h = w, h
+  self.io.DisplaySize.x, self.io.DisplaySize.y = self.w, self.h
+end
 
 -- input capture
 

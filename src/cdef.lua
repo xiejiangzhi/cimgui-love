@@ -363,6 +363,7 @@ typedef enum {
     ImGuiDragDropFlags_AcceptBeforeDelivery = 1 << 10,
     ImGuiDragDropFlags_AcceptNoDrawDefaultRect = 1 << 11,
     ImGuiDragDropFlags_AcceptNoPreviewTooltip = 1 << 12,
+    ImGuiDragDropFlags_AcceptDrawAsHovered = 1 << 13,
     ImGuiDragDropFlags_AcceptPeekOnly = ImGuiDragDropFlags_AcceptBeforeDelivery | ImGuiDragDropFlags_AcceptNoDrawDefaultRect,
 }ImGuiDragDropFlags_;
 typedef enum {
@@ -646,6 +647,7 @@ typedef enum {
     ImGuiCol_TextSelectedBg,
     ImGuiCol_TreeLines,
     ImGuiCol_DragDropTarget,
+    ImGuiCol_DragDropTargetBg,
     ImGuiCol_UnsavedMarker,
     ImGuiCol_NavCursor,
     ImGuiCol_NavWindowingHighlight,
@@ -921,6 +923,9 @@ struct ImGuiStyle
     ImGuiTreeNodeFlags TreeLinesFlags;
     float TreeLinesSize;
     float TreeLinesRounding;
+    float DragDropTargetRounding;
+    float DragDropTargetBorderSize;
+    float DragDropTargetPadding;
     ImGuiDir ColorButtonPosition;
     ImVec2 ButtonTextAlign;
     ImVec2 SelectableTextAlign;
@@ -1158,6 +1163,7 @@ typedef enum {
     ImGuiMultiSelectFlags_SelectOnClick = 1 << 13,
     ImGuiMultiSelectFlags_SelectOnClickRelease = 1 << 14,
     ImGuiMultiSelectFlags_NavWrapX = 1 << 16,
+    ImGuiMultiSelectFlags_NoSelectOnRightClick = 1 << 17,
 }ImGuiMultiSelectFlags_;
 typedef struct ImVector_ImGuiSelectionRequest {int Size;int Capacity;ImGuiSelectionRequest* Data;} ImVector_ImGuiSelectionRequest;
 struct ImGuiMultiSelectIO
@@ -1447,7 +1453,7 @@ struct ImFontBaked
     unsigned int LoadNoRenderOnLayout:1;
     int LastUsedFrame;
     ImGuiID BakedId;
-    ImFont* ContainerFont;
+    ImFont* OwnerFont;
     void* FontLoaderDatas;
 };
 typedef enum {
@@ -1460,7 +1466,7 @@ typedef struct ImVector_ImFontConfigPtr {int Size;int Capacity;ImFontConfig** Da
 struct ImFont
 {
     ImFontBaked* LastBaked;
-    ImFontAtlas* ContainerAtlas;
+    ImFontAtlas* OwnerAtlas;
     ImFontFlags Flags;
     float CurrentRasterizerDensity;
     ImGuiID FontId;
@@ -1468,7 +1474,7 @@ struct ImFont
     ImVector_ImFontConfigPtr Sources;
     ImWchar EllipsisChar;
     ImWchar FallbackChar;
-    ImU8 Used8kPagesMap[(0xFFFF+1)/8192/8];
+    ImU8 Used8kPagesMap[(0xFFFF +1)/8192/8];
     _Bool EllipsisAutoBake;
     ImGuiStorage RemapPairs;
 };

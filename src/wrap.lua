@@ -206,7 +206,7 @@ ImDrawList["AddCallback"] = ImDrawList["AddCallback"]  or function(i1, i2, i3, i
     jit.off(true)
     if i4 == nil then i4 = 0 end
     if not ffi.istype("ImDrawCallback", i2) then
-        local str = tostring(i2)
+        local str = string.format("LCb#%p", i2)
         _common.callbacks[str] = i2
         i2 = ffi.cast("ImDrawCallback", str)
     end
@@ -1657,6 +1657,21 @@ end
 M.ImVec4 = ImVec4
 ffi.metatype("ImVec4", ImVec4)
 
+M.ImGuiFreeType_DebugEditFontLoaderFlags = M.ImGuiFreeType_DebugEditFontLoaderFlags  or function(i1)
+    jit.off(true)
+    local out = C.ImGuiFreeType_DebugEditFontLoaderFlags(i1)
+    return out
+end
+M.ImGuiFreeType_GetFontLoader = M.ImGuiFreeType_GetFontLoader  or function()
+    jit.off(true)
+    local out = C.ImGuiFreeType_GetFontLoader()
+    return out
+end
+M.ImGuiFreeType_SetAllocatorFunctions = M.ImGuiFreeType_SetAllocatorFunctions  or function(i1, i2, i3)
+    jit.off(true)
+    local out = C.ImGuiFreeType_SetAllocatorFunctions(i1, i2, i3)
+    return out
+end
 M.AcceptDragDropPayload = M.AcceptDragDropPayload  or function(i1, i2)
     jit.off(true)
     if i2 == nil then i2 = 0 end
