@@ -33,6 +33,8 @@ local count_time = 1
 
 local TestTex = lovr.graphics.newTexture('imgui_hello_world.png')
 
+local ImGuiDrawCb
+
 function lovr.update(dt)
   time = time + dt
 
@@ -95,6 +97,35 @@ function lovr.update(dt)
   ImGui.Text('default font')
   ImGui.PopFont()
   ImGui.PopStyleColor(1)
+
+  local dv = math.abs(math.sin(time) * 20)
+  local dsize = ImGui.ImVec2_Float(50 + dv, 50 + dv)
+  ImGui.Dummy(dsize)
+  local spos = ImGui.GetItemRectMin()
+  local tpos = ImGui.GetItemRectMax()
+  if ImGuiDrawCb then
+    ImGuiDrawCb[1], ImGuiDrawCb[2] = spos, tpos
+  else
+    ImGuiDrawCb = setmetatable({ spos, tpos }, { __call = function(t, ctx, pass, parent_list, cmd)
+      pass:push('state')
+      pass:setColor(math.abs(math.sin(time)), 0, 1)
+      pass:setDepthWrite(true)
+      pass:setShader('normal')
+      local sp, tp = t[1], t[2]
+      local p = (sp + tp) * 0.5
+      -- 0.01 is pixel to world scale, see vertex shader
+      local pos = vec3(p.x * 0.01, -p.y * 0.01, 0)
+      local w, h = (tp.x - sp.x) * 0.01, (tp.y - sp.y) * 0.01
+      -- pass current transform is transform of ui:Draw
+      pass:box(pos, vec3(w, h, 0.1 + math.abs(math.sin(time) * 0.5)))
+      pass:setColor(1, 1, 1)
+      pass:pop('state')
+    end})
+  end
+  local drawlist = ImGui.GetWindowDrawList()
+  drawlist:AddCallback(ImGuiDrawCb)
+  ImGui.SameLine()
+  ImGui.Text("Callback to draw a 3D box")
 
   ImGui.Image(TestTex, ImGui.ImVec2_Float(150, 100), nil, nil)
   ImGui.SameLine()
