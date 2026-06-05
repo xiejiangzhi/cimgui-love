@@ -156,8 +156,8 @@ local io, platform_io
 
 function L.Init()
     C.igCreateContext(nil)
-    io = C.igGetIO()
-    platform_io = C.igGetPlatformIO()
+    io = C.igGetIO_Nil()
+    platform_io = C.igGetPlatformIO_Nil()
 
     cliboard_callback_get = ffi.cast("const char* (*)(void*)", function(userdata)
         return love.system.getClipboardText()
