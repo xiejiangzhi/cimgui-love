@@ -12,7 +12,7 @@ local ImVec2Zero = ImGui.ImVec2_Float(0, 0)
 local time = 0
 
 function lovr.load()
-  ui_2d = ImGui.lovr.NewContext('2d', { impl_name = '2d' })
+  ui_2d = ImGui.lovr.NewContext('2d', { impl_name = '2d', default_font = "ProggyClean.ttf" })
 
   ui_3d1 = ImGui.lovr.NewContext('3d', {
     ini_path = false, display_size = { 200, 200 }, impl_name = '3d1',
@@ -25,7 +25,7 @@ function lovr.load()
 
   ui_2d:AddFontTTF('AwesomeFont.otf', nil, { args = {
     MergeMode = true,
-    GlyphOffset = ImGui.ImVec2_Float(0, 2.5)
+    PixelSnapH = true,
   } }, 'icon')
 end
 

@@ -1,1 +1,4 @@
 ImGuiFreeType_SetAllocatorFunctions: user_data=nullptr
+igGetTypingSelectRequest: flags=ImGuiTypingSelectFlags_None
+igOpenPopupEx: popup_flags=ImGuiPopupFlags_None
+igRenderNavCursor: flags=ImGuiNavRenderCursorFlags_None

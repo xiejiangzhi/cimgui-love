@@ -163,8 +163,8 @@ function Context.new(render_mode, opts)
   ffi.gc(self.context, C.igDestroyContext)
   self.activated = false
   self:Activate()
-  self.io = C.igGetIO()
-  self.platform_io = C.igGetPlatformIO()
+  self.io = C.igGetIO_Nil()
+  self.platform_io = C.igGetPlatformIO_Nil()
 
   -- don't add default font again if usage shared font
   if not self.fonts.default then

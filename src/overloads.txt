@@ -1,38 +1,68 @@
 ImColor
     ImColor_Nil()
     ImColor_Float(float r,float g,float b,float a)
-    ImColor_Vec4(const ImVec4 col)
+    ImColor_Vec4(const ImVec4_c col)
     ImColor_Int(int r,int g,int b,int a)
     ImColor_U32(ImU32 rgba)
+
+ImGuiPtrOrIndex
+    ImGuiPtrOrIndex_Ptr(void* ptr)
+    ImGuiPtrOrIndex_Int(int index)
 
 ImGuiStoragePair
     ImGuiStoragePair_Int(ImGuiID _key,int _val)
     ImGuiStoragePair_Float(ImGuiID _key,float _val)
     ImGuiStoragePair_Ptr(ImGuiID _key,void* _val)
 
+ImGuiStyleMod
+    ImGuiStyleMod_Int(ImGuiStyleVar idx,int v)
+    ImGuiStyleMod_Float(ImGuiStyleVar idx,float v)
+    ImGuiStyleMod_Vec2(ImGuiStyleVar idx,ImVec2_c v)
+
 ImGuiTextRange
     ImGuiTextRange_Nil()
     ImGuiTextRange_Str(const char* _b,const char* _e)
+
+ImRect
+    ImRect_Nil()
+    ImRect_Vec2(const ImVec2_c min,const ImVec2_c max)
+    ImRect_Vec4(const ImVec4_c v)
+    ImRect_Float(float x1,float y1,float x2,float y2)
 
 ImTextureRef
     ImTextureRef_Nil()
     ImTextureRef_TextureID(ImTextureID tex_id)
 
+ImVec1
+    ImVec1_Nil()
+    ImVec1_Float(float _x)
+
 ImVec2
     ImVec2_Nil()
     ImVec2_Float(float _x,float _y)
+
+ImVec2i
+    ImVec2i_Nil()
+    ImVec2i_Int(int _x,int _y)
+
+ImVec2ih
+    ImVec2ih_Nil()
+    ImVec2ih_short(short _x,short _y)
+    ImVec2ih_Vec2(const ImVec2_c rhs)
 
 ImVec4
     ImVec4_Nil()
     ImVec4_Float(float _x,float _y,float _z,float _w)
 
 BeginChild
-    BeginChild_Str(const char* str_id,const ImVec2 size,ImGuiChildFlags child_flags,ImGuiWindowFlags window_flags)
-    BeginChild_ID(ImGuiID id,const ImVec2 size,ImGuiChildFlags child_flags,ImGuiWindowFlags window_flags)
+    BeginChild_Str(const char* str_id,const ImVec2_c size,ImGuiChildFlags child_flags,ImGuiWindowFlags window_flags)
+    BeginChild_ID(ImGuiID id,const ImVec2_c size,ImGuiChildFlags child_flags,ImGuiWindowFlags window_flags)
 
 CheckboxFlags
     CheckboxFlags_IntPtr(const char* label,int* flags,int flags_value)
     CheckboxFlags_UintPtr(const char* label,unsigned int* flags,unsigned int flags_value)
+    CheckboxFlags_S64Ptr(const char* label,ImS64* flags,ImS64 flags_value)
+    CheckboxFlags_U64Ptr(const char* label,ImU64* flags,ImU64 flags_value)
 
 CollapsingHeader
     CollapsingHeader_TreeNodeFlags(const char* label,ImGuiTreeNodeFlags flags)
@@ -43,10 +73,19 @@ Combo
     Combo_Str(const char* label,int* current_item,const char* items_separated_by_zeros,int popup_max_height_in_items)
     Combo_FnStrPtr(const char* label,int* current_item,const char*(*getter)(void* user_data,int idx),void* user_data,int items_count,int popup_max_height_in_items)
 
+GetBackgroundDrawList
+    GetBackgroundDrawList_Nil()
+    GetBackgroundDrawList_ViewportPtr(ImGuiViewport* viewport)
+
 GetColorU32
     GetColorU32_Col(ImGuiCol idx,float alpha_mul)
-    GetColorU32_Vec4(const ImVec4 col)
+    GetColorU32_Vec4(const ImVec4_c col)
     GetColorU32_U32(ImU32 col,float alpha_mul)
+
+GetForegroundDrawList
+    GetForegroundDrawList_Nil()
+    GetForegroundDrawList_WindowPtr(ImGuiWindow* window)
+    GetForegroundDrawList_ViewportPtr(ImGuiViewport* viewport)
 
 GetID
     GetID_Str(const char* str_id)
@@ -54,13 +93,115 @@ GetID
     GetID_Ptr(const void* ptr_id)
     GetID_Int(int int_id)
 
+GetIDWithSeed
+    GetIDWithSeed_Str(const char* str_id_begin,const char* str_id_end,ImGuiID seed)
+    GetIDWithSeed_Int(int n,ImGuiID seed)
+
+GetIO
+    GetIO_Nil()
+    GetIO_ContextPtr(ImGuiContext* ctx)
+
+GetKeyData
+    GetKeyData_ContextPtr(ImGuiContext* ctx,ImGuiKey key)
+    GetKeyData_Key(ImGuiKey key)
+
+GetPlatformIO
+    GetPlatformIO_Nil()
+    GetPlatformIO_ContextPtr(ImGuiContext* ctx)
+
+ImAbs
+    ImAbs_Int(int x)
+    ImAbs_Float(float x)
+    ImAbs_double(double x)
+
+ImFloor
+    ImFloor_Float(float f)
+    ImFloor_Vec2(const ImVec2_c v)
+
+ImIsPowerOfTwo
+    ImIsPowerOfTwo_Int(int v)
+    ImIsPowerOfTwo_U64(ImU64 v)
+
+ImLengthSqr
+    ImLengthSqr_Vec2(const ImVec2_c lhs)
+    ImLengthSqr_Vec4(const ImVec4_c lhs)
+
+ImLerp
+    ImLerp_Vec2Float(const ImVec2_c a,const ImVec2_c b,float t)
+    ImLerp_Vec2Vec2(const ImVec2_c a,const ImVec2_c b,const ImVec2_c t)
+    ImLerp_Vec4(const ImVec4_c a,const ImVec4_c b,float t)
+
+ImLog
+    ImLog_Float(float x)
+    ImLog_double(double x)
+
+ImPow
+    ImPow_Float(float x,float y)
+    ImPow_double(double x,double y)
+
+ImRsqrt
+    ImRsqrt_Float(float x)
+    ImRsqrt_double(double x)
+
+ImSign
+    ImSign_Float(float x)
+    ImSign_double(double x)
+
+ImTrunc
+    ImTrunc_Float(float f)
+    ImTrunc_Vec2(const ImVec2_c v)
+
+IsKeyChordPressed
+    IsKeyChordPressed_Nil(ImGuiKeyChord key_chord)
+    IsKeyChordPressed_InputFlags(ImGuiKeyChord key_chord,ImGuiInputFlags flags,ImGuiID owner_id)
+
+IsKeyDown
+    IsKeyDown_Nil(ImGuiKey key)
+    IsKeyDown_ID(ImGuiKey key,ImGuiID owner_id)
+
+IsKeyPressed
+    IsKeyPressed_Bool(ImGuiKey key,bool repeat)
+    IsKeyPressed_InputFlags(ImGuiKey key,ImGuiInputFlags flags,ImGuiID owner_id)
+
+IsKeyReleased
+    IsKeyReleased_Nil(ImGuiKey key)
+    IsKeyReleased_ID(ImGuiKey key,ImGuiID owner_id)
+
+IsMouseClicked
+    IsMouseClicked_Bool(ImGuiMouseButton button,bool repeat)
+    IsMouseClicked_InputFlags(ImGuiMouseButton button,ImGuiInputFlags flags,ImGuiID owner_id)
+
+IsMouseDoubleClicked
+    IsMouseDoubleClicked_Nil(ImGuiMouseButton button)
+    IsMouseDoubleClicked_ID(ImGuiMouseButton button,ImGuiID owner_id)
+
+IsMouseDown
+    IsMouseDown_Nil(ImGuiMouseButton button)
+    IsMouseDown_ID(ImGuiMouseButton button,ImGuiID owner_id)
+
+IsMouseReleased
+    IsMouseReleased_Nil(ImGuiMouseButton button)
+    IsMouseReleased_ID(ImGuiMouseButton button,ImGuiID owner_id)
+
+IsPopupOpen
+    IsPopupOpen_Str(const char* str_id,ImGuiPopupFlags flags)
+    IsPopupOpen_ID(ImGuiID id,ImGuiPopupFlags popup_flags)
+
 IsRectVisible
-    IsRectVisible_Nil(const ImVec2 size)
-    IsRectVisible_Vec2(const ImVec2 rect_min,const ImVec2 rect_max)
+    IsRectVisible_Nil(const ImVec2_c size)
+    IsRectVisible_Vec2(const ImVec2_c rect_min,const ImVec2_c rect_max)
+
+ItemSize
+    ItemSize_Vec2(const ImVec2_c size,float text_baseline_y)
+    ItemSize_Rect(const ImRect_c bb,float text_baseline_y)
 
 ListBox
     ListBox_Str_arr(const char* label,int* current_item,const char* const items[],int items_count,int height_in_items)
     ListBox_FnStrPtr(const char* label,int* current_item,const char*(*getter)(void* user_data,int idx),void* user_data,int items_count,int height_in_items)
+
+MarkIniSettingsDirty
+    MarkIniSettingsDirty_Nil()
+    MarkIniSettingsDirty_WindowPtr(ImGuiWindow* window)
 
 MenuItem
     MenuItem_Bool(const char* label,const char* shortcut,bool selected,bool enabled)
@@ -71,12 +212,12 @@ OpenPopup
     OpenPopup_ID(ImGuiID id,ImGuiPopupFlags popup_flags)
 
 PlotHistogram
-    PlotHistogram_FloatPtr(const char* label,const float* values,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,ImVec2 graph_size,int stride)
-    PlotHistogram_FnFloatPtr(const char* label,float(*values_getter)(void* data,int idx),void* data,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,ImVec2 graph_size)
+    PlotHistogram_FloatPtr(const char* label,const float* values,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,ImVec2_c graph_size,int stride)
+    PlotHistogram_FnFloatPtr(const char* label,float(*values_getter)(void* data,int idx),void* data,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,ImVec2_c graph_size)
 
 PlotLines
-    PlotLines_FloatPtr(const char* label,const float* values,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,ImVec2 graph_size,int stride)
-    PlotLines_FnFloatPtr(const char* label,float(*values_getter)(void* data,int idx),void* data,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,ImVec2 graph_size)
+    PlotLines_FloatPtr(const char* label,const float* values,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,ImVec2_c graph_size,int stride)
+    PlotLines_FnFloatPtr(const char* label,float(*values_getter)(void* data,int idx),void* data,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,ImVec2_c graph_size)
 
 PushID
     PushID_Str(const char* str_id)
@@ -86,35 +227,78 @@ PushID
 
 PushStyleColor
     PushStyleColor_U32(ImGuiCol idx,ImU32 col)
-    PushStyleColor_Vec4(ImGuiCol idx,const ImVec4 col)
+    PushStyleColor_Vec4(ImGuiCol idx,const ImVec4_c col)
 
 PushStyleVar
     PushStyleVar_Float(ImGuiStyleVar idx,float val)
-    PushStyleVar_Vec2(ImGuiStyleVar idx,const ImVec2 val)
+    PushStyleVar_Vec2(ImGuiStyleVar idx,const ImVec2_c val)
 
 RadioButton
     RadioButton_Bool(const char* label,bool active)
     RadioButton_IntPtr(const char* label,int* v,int v_button)
 
 Selectable
-    Selectable_Bool(const char* label,bool selected,ImGuiSelectableFlags flags,const ImVec2 size)
-    Selectable_BoolPtr(const char* label,bool* p_selected,ImGuiSelectableFlags flags,const ImVec2 size)
+    Selectable_Bool(const char* label,bool selected,ImGuiSelectableFlags flags,const ImVec2_c size)
+    Selectable_BoolPtr(const char* label,bool* p_selected,ImGuiSelectableFlags flags,const ImVec2_c size)
+
+SetItemKeyOwner
+    SetItemKeyOwner_Nil(ImGuiKey key)
+    SetItemKeyOwner_InputFlags(ImGuiKey key,ImGuiInputFlags flags)
+
+SetScrollFromPosX
+    SetScrollFromPosX_Float(float local_x,float center_x_ratio)
+    SetScrollFromPosX_WindowPtr(ImGuiWindow* window,float local_x,float center_x_ratio)
+
+SetScrollFromPosY
+    SetScrollFromPosY_Float(float local_y,float center_y_ratio)
+    SetScrollFromPosY_WindowPtr(ImGuiWindow* window,float local_y,float center_y_ratio)
+
+SetScrollX
+    SetScrollX_Float(float scroll_x)
+    SetScrollX_WindowPtr(ImGuiWindow* window,float scroll_x)
+
+SetScrollY
+    SetScrollY_Float(float scroll_y)
+    SetScrollY_WindowPtr(ImGuiWindow* window,float scroll_y)
 
 SetWindowCollapsed
     SetWindowCollapsed_Bool(bool collapsed,ImGuiCond cond)
     SetWindowCollapsed_Str(const char* name,bool collapsed,ImGuiCond cond)
+    SetWindowCollapsed_WindowPtr(ImGuiWindow* window,bool collapsed,ImGuiCond cond)
 
 SetWindowFocus
     SetWindowFocus_Nil()
     SetWindowFocus_Str(const char* name)
 
 SetWindowPos
-    SetWindowPos_Vec2(const ImVec2 pos,ImGuiCond cond)
-    SetWindowPos_Str(const char* name,const ImVec2 pos,ImGuiCond cond)
+    SetWindowPos_Vec2(const ImVec2_c pos,ImGuiCond cond)
+    SetWindowPos_Str(const char* name,const ImVec2_c pos,ImGuiCond cond)
+    SetWindowPos_WindowPtr(ImGuiWindow* window,const ImVec2_c pos,ImGuiCond cond)
 
 SetWindowSize
-    SetWindowSize_Vec2(const ImVec2 size,ImGuiCond cond)
-    SetWindowSize_Str(const char* name,const ImVec2 size,ImGuiCond cond)
+    SetWindowSize_Vec2(const ImVec2_c size,ImGuiCond cond)
+    SetWindowSize_Str(const char* name,const ImVec2_c size,ImGuiCond cond)
+    SetWindowSize_WindowPtr(ImGuiWindow* window,const ImVec2_c size,ImGuiCond cond)
+
+Shortcut
+    Shortcut_Nil(ImGuiKeyChord key_chord,ImGuiInputFlags flags)
+    Shortcut_ID(ImGuiKeyChord key_chord,ImGuiInputFlags flags,ImGuiID owner_id)
+
+TabBarQueueFocus
+    TabBarQueueFocus_TabItemPtr(ImGuiTabBar* tab_bar,ImGuiTabItem* tab)
+    TabBarQueueFocus_Str(ImGuiTabBar* tab_bar,const char* tab_name)
+
+TabItemCalcSize
+    TabItemCalcSize_Str(const char* label,bool has_close_button_or_unsaved_marker)
+    TabItemCalcSize_WindowPtr(ImGuiWindow* window)
+
+TableGcCompactTransientBuffers
+    TableGcCompactTransientBuffers_TablePtr(ImGuiTable* table)
+    TableGcCompactTransientBuffers_TableTempDataPtr(ImGuiTableTempData* table)
+
+TableGetColumnName
+    TableGetColumnName_Int(int column_n)
+    TableGetColumnName_TablePtr(const ImGuiTable* table,int column_n)
 
 TreeNode
     TreeNode_Str(const char* label)
