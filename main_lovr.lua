@@ -23,7 +23,10 @@ function lovr.load()
     master_context = ui_2d
   })
 
-  ui_2d:AddFontTTF('AwesomeFont.otf', 28, nil, 'icon')
+  ui_2d:AddFontTTF('AwesomeFont.otf', nil, { args = {
+    MergeMode = true,
+    GlyphOffset = ImGui.ImVec2_Float(0, 2.5)
+  } }, 'icon')
 end
 
 local fps = 0
@@ -64,13 +67,13 @@ function lovr.update(dt)
     ImGui.SetNextWindowSize(ImGui.ImVec2_Float(200, 200))
     ImGui.Begin('win_3d_1')
     ImGui.Dummy(ImGui.ImVec2_Float(10, 10))
-    local font = ui_3d1:GetFont('icon')
+    -- local font = ui_3d1:GetFont('icon')
     for i = 1, 10 do
       ImGui.Text('3d win 1')
-      ImGui.SameLine()
-      ImGui.PushFont(font, 16)
-      ImGui.Text('\u{f015}')
-      ImGui.PopFont()
+      -- ImGui.SameLine()
+      -- ImGui.PushFont(font, 16)
+      ImGui.Text('merged font \u{f015}')
+      -- ImGui.PopFont()
     end
     ImGui.Button('button')
     ImGui.End()
@@ -86,14 +89,14 @@ function lovr.update(dt)
   ImGui.Text('icon:')
 
   ImGui.PushStyleColor_Vec4(0, ImGui.ImVec4_Float(1, 0, 0, 1))
-  local font = ui_3d2:GetFont('icon')
-  ImGui.PushFont(font, 0) -- default size
+  -- local font = ui_3d2:GetFont('icon')
+  -- ImGui.PushFont(font, 0) -- default size
   ImGui.Text('\u{f2b9}')
-  ImGui.PopFont()
-  ImGui.PushFont(font, 30)
+  -- ImGui.PopFont()
+  ImGui.PushFont(nil, 30)
   ImGui.Text('\u{f036}')
   ImGui.PopFont()
-  ImGui.PushFont(ui_3d2:GetFont('default'), 20)
+  ImGui.PushFont(nil, 20)
   ImGui.Text('default font')
   ImGui.PopFont()
   ImGui.PopStyleColor(1)
@@ -202,6 +205,10 @@ end
 
 function lovr.resize(w, h)
   ui_2d:Resize(w, h)
+end
+
+function lovr.focus(focused)
+  ui_2d:Focus(focused)
 end
 
 function lovr.quit()

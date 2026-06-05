@@ -637,6 +637,10 @@ function Context:TextInput(text)
   C.ImGuiIO_AddInputCharactersUTF8(self.io, text)
 end
 
+function Context:Focus(focused)
+  C.ImGuiIO_AddFocusEvent(self.io, focused)
+end
+
 -- function Context:JoystickAdded(joystick)
 --   if not joystick:isGamepad() then return end
 --   self.io.BackendFlags = bit.bor(self.io.BackendFlags, C.ImGuiBackendFlags_HasGamepad)
