@@ -537,9 +537,11 @@ function Context:_DrawImpl(pass, tf, opts)
           cmd.UserCallback(cmd_list, cmd)
         end
       elseif cmd.ElemCount > 0 then
-        local clipX, clipY = cmd.ClipRect.x, cmd.ClipRect.y
-        local clipW = cmd.ClipRect.z - clipX
-        local clipH = cmd.ClipRect.w - clipY
+        local clip_rect = cmd.ClipRect
+        -- neg value may cause pass:setScissor error
+        local clipX, clipY = math.max(0, clip_rect.x), math.max(0, clip_rect.y)
+        local clipW = clip_rect.z - clipX
+        local clipH = clip_rect.w - clipY
 
         if clipW > 0 and clipH > 0 then
           -- pass:setBlendMode("alpha", "alphamultiply")
